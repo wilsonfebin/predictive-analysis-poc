@@ -1,0 +1,31 @@
+services:
+  backend:
+    build: .
+    command: ["uvicorn", "src.api:app", "--host", "0.0.0.0", "--port", "8000"]
+    environment:
+      APP_DB_PATH: /data/app_state.sqlite3
+      DATA_DIR: /app/data
+      REPORT_DIR: /app/reports
+      LLM_MODE: ${LLM_MODE:-disabled}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      DEMO_USERS_JSON: ${DEMO_USERS_JSON:-}
+    ports:
+      - "8000:8000"
+    volumes:
+      - app-state:/data
+    restart: unless-stopped
+
+  frontend:
+    build: .
+    command: ["streamlit", "run", "app/streamlit_app.py", "--server.address=0.0.0.0", "--server.port=8501"]
+    environment:
+      API_BASE_URL: http://backend:8000
+    ports:
+      - "8501:8501"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  app-state:

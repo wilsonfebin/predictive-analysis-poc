@@ -1,0 +1,238 @@
+{
+  "provenance": "synthetic",
+  "asset": "DG-01",
+  "vessel": "VESSEL-01",
+  "input_rows": 43200,
+  "sensor_count": 36,
+  "baseline_period": {
+    "start": "2026-09-01T00:00:00Z",
+    "end_exclusive": "2026-09-07T00:00:00Z"
+  },
+  "baseline_training_rows_by_signal": {
+    "engine_speed_rpm": 7920,
+    "generator_load_pct": 7920,
+    "lube_oil_pressure_bar": 7911,
+    "lube_oil_temperature_c": 7920,
+    "lube_oil_level_pct": 7920,
+    "lube_filter_dp_bar": 7920,
+    "jacket_water_outlet_c": 7914,
+    "jacket_water_pressure_bar": 7920,
+    "seawater_inlet_c": 7920,
+    "cooler_seawater_dp_bar": 7920,
+    "charge_air_pressure_bar": 7920,
+    "charge_air_temperature_c": 7920,
+    "exhaust_receiver_temp_c": 7920,
+    "turbo_speed_rpm": 7920,
+    "fuel_supply_pressure_bar": 7916,
+    "cylinder_01_exhaust_temp_c": 7920,
+    "cylinder_02_exhaust_temp_c": 7920,
+    "cylinder_03_exhaust_temp_c": 7920,
+    "cylinder_04_exhaust_temp_c": 7920,
+    "cylinder_05_exhaust_temp_c": 7920,
+    "cylinder_06_exhaust_temp_c": 7920,
+    "cylinder_07_exhaust_temp_c": 7920,
+    "cylinder_08_exhaust_temp_c": 7920,
+    "cylinder_09_exhaust_temp_c": 7920,
+    "cylinder_10_exhaust_temp_c": 7920,
+    "cylinder_11_exhaust_temp_c": 7920,
+    "cylinder_12_exhaust_temp_c": 7920,
+    "cylinder_13_exhaust_temp_c": 7920,
+    "cylinder_14_exhaust_temp_c": 7920,
+    "cylinder_15_exhaust_temp_c": 7920,
+    "cylinder_16_exhaust_temp_c": 7920,
+    "generator_voltage_v": 7920,
+    "generator_current_a": 7920,
+    "generator_frequency_hz": 7913,
+    "generator_power_factor": 7920,
+    "generator_active_power_kw": 7920
+  },
+  "model_type": "per-signal ordinary least squares; load context plus seawater temperature for cooling and ambient temperature for selected temperatures",
+  "detection_configuration": {
+    "baseline_start": "2026-09-01T00:00:00Z",
+    "baseline_end_exclusive": "2026-09-07T00:00:00Z",
+    "quality_accepted_for_model": [
+      "GOOD"
+    ],
+    "persistence_window_running_minutes": 180,
+    "persistence_required_minutes": 120,
+    "minimum_tolerance_by_unit": {
+      "degC": 1.0,
+      "bar": 0.08,
+      "rpm": 30.0,
+      "%": 1.0,
+      "A": 20.0,
+      "V": 3.0,
+      "Hz": 0.15,
+      "ratio": 0.04
+    },
+    "baseline_rmse_multiplier": 4.0,
+    "sensor_frozen_minimum_running_minutes": 60,
+    "sensor_frozen_minimum_unique_values": 1,
+    "grouping_gap_minutes": 60,
+    "provenance": "Synthetic POC configuration; tolerances require domain validation."
+  },
+  "model_count": 36,
+  "tolerance_by_signal": {
+    "engine_speed_rpm": 30.0,
+    "generator_load_pct": 56.15667957232319,
+    "lube_oil_pressure_bar": 0.08,
+    "lube_oil_temperature_c": 1.0,
+    "lube_oil_level_pct": 1.0,
+    "lube_filter_dp_bar": 0.08,
+    "jacket_water_outlet_c": 1.0,
+    "jacket_water_pressure_bar": 0.08,
+    "seawater_inlet_c": 3.2411415622430577,
+    "cooler_seawater_dp_bar": 0.08,
+    "charge_air_pressure_bar": 0.08,
+    "charge_air_temperature_c": 3.7204561837441923,
+    "exhaust_receiver_temp_c": 1.6031849319906908,
+    "turbo_speed_rpm": 105.63757430835501,
+    "fuel_supply_pressure_bar": 0.08,
+    "cylinder_01_exhaust_temp_c": 1.6463086599793317,
+    "cylinder_02_exhaust_temp_c": 1.6365397432295774,
+    "cylinder_03_exhaust_temp_c": 1.6723450660300534,
+    "cylinder_04_exhaust_temp_c": 1.6408979989026407,
+    "cylinder_05_exhaust_temp_c": 1.6335119300305094,
+    "cylinder_06_exhaust_temp_c": 1.6529869695961839,
+    "cylinder_07_exhaust_temp_c": 1.6448128120299341,
+    "cylinder_08_exhaust_temp_c": 1.6769307390132753,
+    "cylinder_09_exhaust_temp_c": 1.669201243947415,
+    "cylinder_10_exhaust_temp_c": 1.6648936627816573,
+    "cylinder_11_exhaust_temp_c": 1.6376503106454834,
+    "cylinder_12_exhaust_temp_c": 1.6559450541017546,
+    "cylinder_13_exhaust_temp_c": 1.6338525181510941,
+    "cylinder_14_exhaust_temp_c": 1.6747303848824504,
+    "cylinder_15_exhaust_temp_c": 1.6931110754269174,
+    "cylinder_16_exhaust_temp_c": 1.6695573579208403,
+    "generator_voltage_v": 3.0,
+    "generator_current_a": 20.0,
+    "generator_frequency_hz": 0.15,
+    "generator_power_factor": 0.05977461156462876,
+    "generator_active_power_kw": 3.3017914317178816
+  },
+  "machinery_finding_count": 4,
+  "sensor_finding_count": 2,
+  "healthy_period_false_machinery_findings": 0,
+  "healthy_30min_load_transitions_ge_10pp": 36,
+  "quality_issue_counts_by_signal": {
+    "engine_speed_rpm": {
+      "GOOD": 39600
+    },
+    "generator_load_pct": {
+      "GOOD": 39600
+    },
+    "lube_oil_pressure_bar": {
+      "GOOD": 39559,
+      "MISSING": 41
+    },
+    "lube_oil_temperature_c": {
+      "GOOD": 39600
+    },
+    "lube_oil_level_pct": {
+      "GOOD": 39600
+    },
+    "lube_filter_dp_bar": {
+      "GOOD": 39600
+    },
+    "jacket_water_outlet_c": {
+      "GOOD": 39566,
+      "BAD_SPIKE": 34
+    },
+    "jacket_water_pressure_bar": {
+      "GOOD": 39600
+    },
+    "seawater_inlet_c": {
+      "GOOD": 39600
+    },
+    "cooler_seawater_dp_bar": {
+      "GOOD": 9360,
+      "STALE": 30240
+    },
+    "charge_air_pressure_bar": {
+      "GOOD": 39600
+    },
+    "charge_air_temperature_c": {
+      "GOOD": 39600
+    },
+    "exhaust_receiver_temp_c": {
+      "GOOD": 39600
+    },
+    "turbo_speed_rpm": {
+      "GOOD": 39600
+    },
+    "fuel_supply_pressure_bar": {
+      "GOOD": 39576,
+      "UNCERTAIN": 24
+    },
+    "cylinder_01_exhaust_temp_c": {
+      "GOOD": 39600
+    },
+    "cylinder_02_exhaust_temp_c": {
+      "GOOD": 39600
+    },
+    "cylinder_03_exhaust_temp_c": {
+      "GOOD": 39600
+    },
+    "cylinder_04_exhaust_temp_c": {
+      "GOOD": 39600
+    },
+    "cylinder_05_exhaust_temp_c": {
+      "GOOD": 39600
+    },
+    "cylinder_06_exhaust_temp_c": {
+      "GOOD": 39600
+    },
+    "cylinder_07_exhaust_temp_c": {
+      "GOOD": 39600
+    },
+    "cylinder_08_exhaust_temp_c": {
+      "GOOD": 39600
+    },
+    "cylinder_09_exhaust_temp_c": {
+      "GOOD": 39600
+    },
+    "cylinder_10_exhaust_temp_c": {
+      "GOOD": 39600
+    },
+    "cylinder_11_exhaust_temp_c": {
+      "GOOD": 39600
+    },
+    "cylinder_12_exhaust_temp_c": {
+      "GOOD": 39600
+    },
+    "cylinder_13_exhaust_temp_c": {
+      "GOOD": 39600
+    },
+    "cylinder_14_exhaust_temp_c": {
+      "GOOD": 39600
+    },
+    "cylinder_15_exhaust_temp_c": {
+      "GOOD": 39600
+    },
+    "cylinder_16_exhaust_temp_c": {
+      "GOOD": 39600
+    },
+    "generator_voltage_v": {
+      "GOOD": 39600
+    },
+    "generator_current_a": {
+      "GOOD": 39600
+    },
+    "generator_frequency_hz": {
+      "GOOD": 39564,
+      "BAD_QUALITY": 36
+    },
+    "generator_power_factor": {
+      "GOOD": 39600
+    },
+    "generator_active_power_kw": {
+      "GOOD": 39600
+    }
+  },
+  "stopped_rows_excluded_from_machinery_detection": 3600,
+  "limitations": [
+    "Synthetic illustrative relationships and alarms are not validated marine-engineering models.",
+    "OLS and residual tolerance settings are intentionally simple and need validation against real telemetry.",
+    "Reference alarms are fixed thresholds only for benchmark timing; they are not detection thresholds."
+  ]
+}

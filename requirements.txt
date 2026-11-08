@@ -1,0 +1,8 @@
+fastapi==0.115.12
+uvicorn[standard]==0.34.0
+streamlit==1.43.2
+plotly==6.0.1
+langgraph==0.3.21
+openai==1.68.2
+requests==2.32.3
+httpx==0.28.1

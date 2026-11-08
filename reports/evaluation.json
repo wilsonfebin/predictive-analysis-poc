@@ -1,0 +1,63 @@
+{
+  "provenance": "synthetic",
+  "scenario_results": [
+    {
+      "scenario_id": "F-COOL-01",
+      "category": "machinery",
+      "first_predictive_detection_timestamp": "2026-09-13T03:50:00Z",
+      "fixed_alarm_crossing_timestamp": "2026-09-24T12:44:00Z",
+      "predictive_lead_time_minutes": 16374,
+      "detected_before_alarm": true,
+      "missed_detection": false,
+      "scenario_tag_system_match": true,
+      "provenance": "synthetic"
+    },
+    {
+      "scenario_id": "F-LUBE-01",
+      "category": "machinery",
+      "first_predictive_detection_timestamp": "2026-09-17T13:27:00Z",
+      "fixed_alarm_crossing_timestamp": "2026-09-24T20:40:00Z",
+      "predictive_lead_time_minutes": 10513,
+      "detected_before_alarm": true,
+      "missed_detection": false,
+      "scenario_tag_system_match": true,
+      "provenance": "synthetic"
+    },
+    {
+      "scenario_id": "F-CYL-01",
+      "category": "machinery",
+      "first_predictive_detection_timestamp": "2026-09-20T15:01:00Z",
+      "fixed_alarm_crossing_timestamp": "2026-09-24T11:31:00Z",
+      "predictive_lead_time_minutes": 5550,
+      "detected_before_alarm": true,
+      "missed_detection": false,
+      "scenario_tag_system_match": true,
+      "provenance": "synthetic"
+    },
+    {
+      "scenario_id": "F-SENSOR-01",
+      "category": "sensor_fault",
+      "sensor_issue_detected": true,
+      "instrument_check_routed": true,
+      "machinery_finding_created": false,
+      "first_predictive_detection_timestamp": "2026-09-08T04:00:00Z",
+      "provenance": "synthetic"
+    },
+    {
+      "scenario_id": "F-COOL-02",
+      "category": "machinery",
+      "first_predictive_detection_timestamp": "2026-09-21T15:01:00Z",
+      "fixed_alarm_crossing_timestamp": "2026-09-23T11:01:00Z",
+      "predictive_lead_time_minutes": 2640,
+      "detected_before_alarm": true,
+      "missed_detection": false,
+      "scenario_tag_system_match": true,
+      "provenance": "synthetic"
+    }
+  ],
+  "healthy_period_false_machinery_findings": 0,
+  "healthy_load_transition_machinery_findings": 0,
+  "isolated_spike_machinery_findings": 0,
+  "stopped_period_machinery_findings": 0,
+  "poor_quality_machinery_findings": 0
+}

@@ -1,0 +1,22 @@
+{
+  "baseline_start": "2026-09-01T00:00:00Z",
+  "baseline_end_exclusive": "2026-09-07T00:00:00Z",
+  "quality_accepted_for_model": ["GOOD"],
+  "persistence_window_running_minutes": 180,
+  "persistence_required_minutes": 120,
+  "minimum_tolerance_by_unit": {
+    "degC": 1.0,
+    "bar": 0.08,
+    "rpm": 30.0,
+    "%": 1.0,
+    "A": 20.0,
+    "V": 3.0,
+    "Hz": 0.15,
+    "ratio": 0.04
+  },
+  "baseline_rmse_multiplier": 4.0,
+  "sensor_frozen_minimum_running_minutes": 60,
+  "sensor_frozen_minimum_unique_values": 1,
+  "grouping_gap_minutes": 60,
+  "provenance": "Synthetic POC configuration; tolerances require domain validation."
+}
