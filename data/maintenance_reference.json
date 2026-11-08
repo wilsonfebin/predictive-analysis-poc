@@ -1,0 +1,99 @@
+{
+  "provenance": "synthetic mock reference data",
+  "asset": "DG-01",
+  "systems": [
+    {
+      "system": "cooling",
+      "fault_categories": [
+        "high_temperature",
+        "cooler_degradation"
+      ],
+      "inspection_actions": [
+        "Check cooling-water flow and cooler condition",
+        "Inspect seawater-side strainer and heat-transfer surfaces"
+      ],
+      "maintenance_actions": [
+        {
+          "action_id": "MA-COOL-01",
+          "description": "Inspect and clean cooling-water cooler",
+          "spares": [
+            "GASKET-COOL-01",
+            "FILTER-SW-01"
+          ]
+        }
+      ]
+    },
+    {
+      "system": "lubrication",
+      "fault_categories": [
+        "low_pressure"
+      ],
+      "inspection_actions": [
+        "Verify pressure with an independent gauge",
+        "Inspect filters and pump condition"
+      ],
+      "maintenance_actions": [
+        {
+          "action_id": "MA-LUBE-01",
+          "description": "Inspect lubrication circuit and renew filter if required",
+          "spares": [
+            "FILTER-LO-01"
+          ]
+        }
+      ]
+    },
+    {
+      "system": "combustion",
+      "fault_categories": [
+        "cylinder_temperature_imbalance"
+      ],
+      "inspection_actions": [
+        "Compare cylinder exhaust temperatures and inspect the affected cylinder"
+      ],
+      "maintenance_actions": [
+        {
+          "action_id": "MA-COMB-01",
+          "description": "Inspect cylinder combustion condition",
+          "spares": [
+            "INJECTOR-SEAL-01"
+          ]
+        }
+      ]
+    },
+    {
+      "system": "instrumentation",
+      "fault_categories": [
+        "frozen",
+        "missing",
+        "stale",
+        "implausible"
+      ],
+      "inspection_actions": [
+        "Check transmitter, wiring and signal freshness; compare with an independent measurement"
+      ],
+      "maintenance_actions": []
+    }
+  ],
+  "inventory": [
+    {
+      "part_id": "GASKET-COOL-01",
+      "description": "Cooler gasket set",
+      "quantity_available": 2
+    },
+    {
+      "part_id": "FILTER-SW-01",
+      "description": "Seawater filter element",
+      "quantity_available": 4
+    },
+    {
+      "part_id": "FILTER-LO-01",
+      "description": "Lube oil filter element",
+      "quantity_available": 3
+    },
+    {
+      "part_id": "INJECTOR-SEAL-01",
+      "description": "Injector seal kit",
+      "quantity_available": 1
+    }
+  ]
+}

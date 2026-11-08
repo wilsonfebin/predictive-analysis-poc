@@ -1,0 +1,108 @@
+{
+  "provenance": "synthetic",
+  "timezone": "UTC",
+  "seed": 20260901,
+  "period": {
+    "start": "2026-09-01T00:00:00Z",
+    "end_exclusive": "2026-10-01T00:00:00Z",
+    "sampling_minutes": 1,
+    "expected_rows": 43200
+  },
+  "healthy_training_period": {
+    "start": "2026-09-01T00:00:00Z",
+    "end_exclusive": "2026-09-07T00:00:00Z",
+    "selection": "Before the earliest injected fault onset; exclude all non-GOOD records and verify valid ranges before model fitting.",
+    "limitations": "Contains ordinary stopped periods and periodic quality events; running state and quality filters remain necessary."
+  },
+  "fault_scenarios": [
+    {
+      "scenario_id": "F-COOL-01",
+      "category": "machinery",
+      "system": "cooling",
+      "affected_signals": [
+        "jacket_water_outlet_c"
+      ],
+      "onset": "2026-09-12T06:00:00Z",
+      "progression": "Linear +0.0009 degC per minute while running",
+      "alarm": {
+        "signal": "jacket_water_outlet_c",
+        "operator": ">=",
+        "value": 96,
+        "unit": "degC"
+      },
+      "expected_detection": "Persistent positive residual; illustrative fixed alarm at 96 degC"
+    },
+    {
+      "scenario_id": "F-LUBE-01",
+      "category": "machinery",
+      "system": "lubrication",
+      "affected_signals": [
+        "lube_oil_pressure_bar"
+      ],
+      "onset": "2026-09-17T00:00:00Z",
+      "progression": "Linear -0.00012 bar per running minute",
+      "alarm": {
+        "signal": "lube_oil_pressure_bar",
+        "operator": "<=",
+        "value": 3.2,
+        "unit": "bar"
+      },
+      "expected_detection": "Persistent negative residual; illustrative fixed alarm at 3.2 bar"
+    },
+    {
+      "scenario_id": "F-CYL-01",
+      "category": "machinery",
+      "system": "combustion",
+      "affected_signals": [
+        "cylinder_07_exhaust_temp_c"
+      ],
+      "onset": "2026-09-20T12:00:00Z",
+      "progression": "Linear +0.025 degC per elapsed minute after onset",
+      "alarm": {
+        "signal": "cylinder_07_exhaust_temp_c",
+        "operator": ">=",
+        "value": 560,
+        "unit": "degC"
+      },
+      "expected_detection": "Persistent imbalance relative to other cylinders; illustrative fixed alarm at 560 degC"
+    },
+    {
+      "scenario_id": "F-SENSOR-01",
+      "category": "sensor_fault",
+      "system": "cooling",
+      "affected_signals": [
+        "cooler_seawater_dp_bar"
+      ],
+      "onset": "2026-09-08T03:00:00Z",
+      "progression": "Sensor value freezes at its onset reading; quality marked STALE after 60 minutes",
+      "alarm": null,
+      "expected_detection": "Instrument check candidate from frozen/stale diagnostic; constant value alone is not proof"
+    },
+    {
+      "scenario_id": "F-COOL-02",
+      "category": "machinery",
+      "system": "cooling",
+      "affected_signals": [
+        "charge_air_temperature_c"
+      ],
+      "onset": "2026-09-19T00:00:00Z",
+      "progression": "Linear +0.0010 degC per elapsed minute after onset",
+      "alarm": {
+        "signal": "charge_air_temperature_c",
+        "operator": ">=",
+        "value": 68,
+        "unit": "degC"
+      },
+      "expected_detection": "Persistent positive residual; illustrative fixed alarm at 68 degC"
+    }
+  ],
+  "data_quality_events": {
+    "missing": "Periodic lube-oil pressure values are blank with MISSING status.",
+    "isolated_spikes": "Periodic jacket-water outlet outliers marked BAD_SPIKE.",
+    "bad_quality": "Periodic generator-frequency records marked BAD_QUALITY.",
+    "uncertain": "Periodic fuel-pressure readings marked UNCERTAIN.",
+    "stale": "Frozen cooler differential-pressure signal marked STALE after 60 minutes.",
+    "implausible": "The marked BAD_SPIKE values are intentionally outside typical behaviour but remain within tag range; tag-range violations are not separately injected."
+  },
+  "disclaimer": "All telemetry and thresholds are illustrative synthetic data, not validated marine-engineering models."
+}

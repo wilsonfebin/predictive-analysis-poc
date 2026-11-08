@@ -1,0 +1,37 @@
+tag_id,signal_name,description,equipment_system,unit,valid_min,valid_max,expected_operating_behaviour,criticality
+ENG_SPEED,engine_speed_rpm,Engine rotational speed,operating_context,rpm,0,1200,Near rated speed while running; zero while stopped,high
+GEN_LOAD,generator_load_pct,Generator electrical load,operating_context,%,0,110,Daily demand variation; zero while stopped,high
+LO_PRESS,lube_oil_pressure_bar,Main lube oil pressure,lubrication,bar,0,10,Rises with running state and modestly with load,high
+LO_TEMP,lube_oil_temperature_c,Lube oil temperature,lubrication,degC,-10,150,Load and ambient dependent,high
+LO_LEVEL,lube_oil_level_pct,Sump level indication,lubrication,%,0,100,Slowly varying level,medium
+LO_FILTER,lube_filter_dp_bar,Lube filter differential pressure,lubrication,bar,0,3,Small load dependence,medium
+JW_OUT,jacket_water_outlet_c,Jacket water outlet temperature,cooling,degC,0,130,Load and seawater temperature dependent,high
+JW_PRESS,jacket_water_pressure_bar,Jacket water pressure,cooling,bar,0,10,Rises with load while running,high
+SW_IN,seawater_inlet_c,Seawater inlet temperature,cooling,degC,-5,50,Environmental context dependent,medium
+SW_DP,cooler_seawater_dp_bar,Illustrative cooler seawater differential pressure,cooling,bar,0,5,Near nominal; degradation scenario reduces heat transfer,medium
+AIR_P,charge_air_pressure_bar,Charge air pressure,air_intake_exhaust,bar,0,8,Increases with load,high
+AIR_T,charge_air_temperature_c,Charge air temperature,cooling,degC,-10,120,"Load, ambient and cooler condition dependent",medium
+EXH_OUT,exhaust_receiver_temp_c,Exhaust receiver temperature,air_intake_exhaust,degC,0,800,Increases with load,high
+TURBO,turbo_speed_rpm,Turbocharger speed,air_intake_exhaust,rpm,0,60000,Increases with load,medium
+FUEL_P,fuel_supply_pressure_bar,Fuel supply pressure,combustion,bar,0,20,Stable while running,medium
+CYL01_EGT,cylinder_01_exhaust_temp_c,Cylinder 01 exhaust gas temperature,combustion,degC,0,900,Load dependent; small cylinder-to-cylinder variation,high
+CYL02_EGT,cylinder_02_exhaust_temp_c,Cylinder 02 exhaust gas temperature,combustion,degC,0,900,Load dependent; small cylinder-to-cylinder variation,high
+CYL03_EGT,cylinder_03_exhaust_temp_c,Cylinder 03 exhaust gas temperature,combustion,degC,0,900,Load dependent; small cylinder-to-cylinder variation,high
+CYL04_EGT,cylinder_04_exhaust_temp_c,Cylinder 04 exhaust gas temperature,combustion,degC,0,900,Load dependent; small cylinder-to-cylinder variation,high
+CYL05_EGT,cylinder_05_exhaust_temp_c,Cylinder 05 exhaust gas temperature,combustion,degC,0,900,Load dependent; small cylinder-to-cylinder variation,high
+CYL06_EGT,cylinder_06_exhaust_temp_c,Cylinder 06 exhaust gas temperature,combustion,degC,0,900,Load dependent; small cylinder-to-cylinder variation,high
+CYL07_EGT,cylinder_07_exhaust_temp_c,Cylinder 07 exhaust gas temperature,combustion,degC,0,900,Load dependent; small cylinder-to-cylinder variation,high
+CYL08_EGT,cylinder_08_exhaust_temp_c,Cylinder 08 exhaust gas temperature,combustion,degC,0,900,Load dependent; small cylinder-to-cylinder variation,high
+CYL09_EGT,cylinder_09_exhaust_temp_c,Cylinder 09 exhaust gas temperature,combustion,degC,0,900,Load dependent; small cylinder-to-cylinder variation,high
+CYL10_EGT,cylinder_10_exhaust_temp_c,Cylinder 10 exhaust gas temperature,combustion,degC,0,900,Load dependent; small cylinder-to-cylinder variation,high
+CYL11_EGT,cylinder_11_exhaust_temp_c,Cylinder 11 exhaust gas temperature,combustion,degC,0,900,Load dependent; small cylinder-to-cylinder variation,high
+CYL12_EGT,cylinder_12_exhaust_temp_c,Cylinder 12 exhaust gas temperature,combustion,degC,0,900,Load dependent; small cylinder-to-cylinder variation,high
+CYL13_EGT,cylinder_13_exhaust_temp_c,Cylinder 13 exhaust gas temperature,combustion,degC,0,900,Load dependent; small cylinder-to-cylinder variation,high
+CYL14_EGT,cylinder_14_exhaust_temp_c,Cylinder 14 exhaust gas temperature,combustion,degC,0,900,Load dependent; small cylinder-to-cylinder variation,high
+CYL15_EGT,cylinder_15_exhaust_temp_c,Cylinder 15 exhaust gas temperature,combustion,degC,0,900,Load dependent; small cylinder-to-cylinder variation,high
+CYL16_EGT,cylinder_16_exhaust_temp_c,Cylinder 16 exhaust gas temperature,combustion,degC,0,900,Load dependent; small cylinder-to-cylinder variation,high
+GEN_VOLT,generator_voltage_v,Generator terminal voltage,generator_electrical,V,0,600,Regulated near nominal while online,high
+GEN_CURR,generator_current_a,Generator current,generator_electrical,A,0,3000,Proportional to load,high
+GEN_FREQ,generator_frequency_hz,Generator frequency,generator_electrical,Hz,0,100,Regulated near nominal while online,high
+GEN_PF,generator_power_factor,Generator power factor,generator_electrical,ratio,0,1,Moderately stable under load,medium
+GEN_KW,generator_active_power_kw,Generator active power,generator_electrical,kW,0,2500,Proportional to load,high
