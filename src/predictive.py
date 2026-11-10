@@ -248,6 +248,31 @@ def _severity(tag, max_ratio, count, required):
     return "low"
 
 
+def _severity_assessment(tag, points, tolerance, required, evaluation_timestamp):
+    """Assess severity from evidence available at one timestamp only."""
+    max_point = max(points, key=lambda point: abs(point[3]) / tolerance, default=None)
+    max_ratio = abs(max_point[3]) / tolerance if max_point and tolerance else 0.0
+    severity = _severity(tag, max_ratio, len(points), required)
+    evidence = {
+        "signal": tag["signal_name"],
+        "unit": tag["unit"],
+        "criticality": tag.get("criticality", "unknown"),
+        "qualifying_observation_count": len(points),
+        "tolerance": round(tolerance, 6),
+        "max_absolute_deviation_ratio": round(max_ratio, 6),
+        "evaluation_timestamp": evaluation_timestamp,
+        "rule": "High if ratio >= 4 or high-criticality count >= {}; Medium if ratio >= 2 or criticality is high/medium; otherwise Low.".format(required * 2),
+    }
+    if max_point:
+        evidence.update({
+            "timestamp": max_point[0],
+            "actual": round(max_point[1], 6),
+            "expected": round(max_point[2], 6),
+            "residual": round(max_point[3], 6),
+        })
+    return severity, evidence
+
+
 def detect_machinery(telemetry, context, tags, models, rmses, config, maintenance):
     window = int(config.get("persistence_window_running_minutes", 180))
     required = int(config.get("persistence_required_minutes", 120))
@@ -263,6 +288,21 @@ def detect_machinery(telemetry, context, tags, models, rmses, config, maintenanc
         active_start = None
         active_detection = None
         active_rows = []
+        active_initial_severity = None
+        active_initial_evidence = None
+        active_severity = None
+        active_escalations = []
+
+        def finish_event():
+            if active_start is None:
+                return
+            raw_events.append({
+                "tag": tag, "start": active_start, "points": active_rows[:], "tolerance": tol,
+                "detection_time": active_detection, "initial_severity": active_initial_severity,
+                "initial_severity_evidence": active_initial_evidence,
+                "severity": active_severity, "severity_escalations": active_escalations[:],
+            })
+
         for row, ctx in zip(telemetry, context):
             if ctx["generator_running"] != "true":
                 continue
@@ -286,19 +326,40 @@ def detect_machinery(telemetry, context, tags, models, rmses, config, maintenanc
                 active_start = selected[0][0]
                 active_detection = row["timestamp"]
                 active_rows = selected[:]
+                active_initial_severity, active_initial_evidence = _severity_assessment(tag, selected, tol, required, row["timestamp"])
+                active_severity = active_initial_severity
+                active_escalations = []
             elif persistent and active_start is not None:
                 active_rows = [x for x in history if x and x[4] != 0]
-            elif active_start is not None:
+
+            if active_start is not None and row["timestamp"] != active_detection:
+                latest_severity, severity_evidence = _severity_assessment(tag, qualifying, tol, required, row["timestamp"])
+                ranks = {"low": 0, "medium": 1, "high": 2}
+                if ranks[latest_severity] > ranks[active_severity]:
+                    previous = active_severity
+                    active_severity = latest_severity
+                    ratio = severity_evidence["max_absolute_deviation_ratio"]
+                    active_escalations.append({
+                        "previous_severity": previous,
+                        "new_severity": latest_severity,
+                        "escalation_timestamp": row["timestamp"],
+                        "supporting_evidence": severity_evidence,
+                        "reason": "The {} severity rule was crossed at {:.3f}x the configured residual tolerance.".format(latest_severity.title(), ratio),
+                    })
+
+            if not persistent and active_start is not None:
                 # Keep a continuous event alive unless the rolling evidence clears.
                 if not qualifying:
-                    raw_events.append((tag, active_start, active_rows[:], tol, active_detection))
+                    finish_event()
                     active_start, active_detection, active_rows = None, None, []
+                    active_initial_severity, active_initial_evidence = None, None
+                    active_severity, active_escalations = None, []
         if active_start is not None:
-            raw_events.append((tag, active_start, active_rows[:], tol, active_detection))
+            finish_event()
     # Merge overlapping events from related signals in one system; do not merge categories.
     groups = []
-    for event in sorted(raw_events, key=lambda e: (e[0]["equipment_system"], e[1])):
-        tag, start, points, tol, detection_time = event
+    for event in sorted(raw_events, key=lambda e: (e["tag"]["equipment_system"], e["start"])):
+        tag, start = event["tag"], event["start"]
         st = parse_time(start)
         match = next((g for g in groups if g["system"] == tag["equipment_system"] and abs((st-g["last_start"]).total_seconds()) <= grouping_gap*60), None)
         if match is None:
@@ -309,27 +370,54 @@ def detect_machinery(telemetry, context, tags, models, rmses, config, maintenanc
     inventory = {p["part_id"]: p for p in maintenance.get("inventory", [])}
     findings = []
     for i, group in enumerate(groups, 1):
-        all_points = [(e[0], point, e[3]) for e in group["events"] for point in e[2]]
-        tags_in = [e[0] for e in group["events"]]
+        all_points = [(e["tag"], point, e["tolerance"]) for e in group["events"] for point in e["points"]]
+        tags_in = [e["tag"] for e in group["events"]]
         evidence = []
         for tag in tags_in:
-            points = next(e[2] for e in group["events"] if e[0] is tag)
+            points = next(e["points"] for e in group["events"] if e["tag"] is tag)
             if not points:
                 continue
             latest = points[-1]
             evidence.append({"signal": tag["signal_name"], "actual": round(latest[1], 4), "expected": round(latest[2], 4), "deviation": round(latest[3], 4), "unit": tag["unit"], "persistence_valid_minutes": len(points)})
-        maxratio = max((abs(p[3])/tol for _, p, tol in all_points if tol), default=0)
-        sev = max((_severity(t, maxratio, len(all_points), required) for t in tags_in), key=lambda v: {"low":0,"medium":1,"high":2}[v])
+        names = [t["signal_name"] for t in tags_in]
         ref = systems.get(group["system"], {})
-        action = (ref.get("maintenance_actions") or [{"description": "Inspect {} system".format(group["system"]), "spares": []}])[0]
+        signal_actions = ref.get("signal_maintenance_actions", {})
+        action = next((signal_actions[name] for name in names if name in signal_actions), None)
+        action = action or (ref.get("maintenance_actions") or [{"description": "Inspect {} system".format(group["system"]), "spares": []}])[0]
         parts = [{"part_id": part, "available": inventory.get(part, {}).get("quantity_available", 0)} for part in action.get("spares", [])]
-        start = min(e[1] for e in group["events"])
+        start = min(e["start"] for e in group["events"])
         end = max((p[0] for _, p, _ in all_points), default=start)
         finding_id = "MACH-{0:03d}".format(i)
-        names = [t["signal_name"] for t in tags_in]
         explanation = "Persistent deviation in {} on {} signal(s), supported by {} valid observations.".format(group["system"], ", ".join(names), sum(e["persistence_valid_minutes"] for e in evidence))
-        detection_time = min(e[4] for e in group["events"])
-        findings.append({"finding_id": finding_id, "vessel_id": "VESSEL-01", "equipment_id": "DG-01", "system": group["system"], "affected_sensors": names, "category": "machinery_degradation", "start_timestamp": start, "end_timestamp": end, "detection_timestamp": detection_time, "actual_value": evidence[0]["actual"] if len(evidence)==1 else None, "expected_value": evidence[0]["expected"] if len(evidence)==1 else None, "deviation": evidence[0]["deviation"] if len(evidence)==1 else None, "severity": sev, "detection_evidence": evidence, "explanation": explanation, "recommended_next_action": action.get("description", "Inspect affected system"), "spare_parts": parts, "provenance": "synthetic"})
+        detection_time = min(e["detection_time"] for e in group["events"])
+        ranks = {"low": 0, "medium": 1, "high": 2}
+        initial_events = [e for e in group["events"] if e["detection_time"] == detection_time]
+        initial_severity = max((e["initial_severity"] for e in initial_events), key=lambda v: ranks[v])
+        initial_severity_evidence = [dict(e["initial_severity_evidence"]) for e in initial_events]
+        current_severity = initial_severity
+        escalations = []
+        timeline = []
+        for event in group["events"]:
+            if event["detection_time"] > detection_time:
+                timeline.append((event["detection_time"], event["initial_severity"], event["initial_severity_evidence"], None))
+            for escalation in event["severity_escalations"]:
+                timeline.append((escalation["escalation_timestamp"], escalation["new_severity"], escalation["supporting_evidence"], escalation["reason"]))
+        for timestamp, new_severity, supporting, reason in sorted(timeline, key=lambda item: item[0]):
+            if ranks[new_severity] <= ranks[current_severity]:
+                continue
+            previous = current_severity
+            current_severity = new_severity
+            escalations.append({
+                "finding_id": finding_id,
+                "previous_severity": previous,
+                "new_severity": new_severity,
+                "escalation_timestamp": timestamp,
+                "supporting_evidence": supporting,
+                "reason": reason or "A newly grouped signal met the configured {} severity rule at its first detection.".format(new_severity.title()),
+            })
+        for escalation in escalations:
+            escalation["finding_id"] = finding_id
+        findings.append({"finding_id": finding_id, "vessel_id": "VESSEL-01", "equipment_id": "DG-01", "system": group["system"], "affected_sensors": names, "category": "machinery_degradation", "start_timestamp": start, "end_timestamp": end, "detection_timestamp": detection_time, "actual_value": evidence[0]["actual"] if len(evidence)==1 else None, "expected_value": evidence[0]["expected"] if len(evidence)==1 else None, "deviation": evidence[0]["deviation"] if len(evidence)==1 else None, "initial_severity": initial_severity, "initial_severity_evidence": initial_severity_evidence, "severity": current_severity, "severity_escalations": escalations, "detection_evidence": evidence, "explanation": explanation, "recommended_next_action": action.get("description", "Inspect affected system"), "spare_parts": parts, "provenance": "synthetic"})
     return findings
 
 
@@ -426,7 +514,7 @@ def run_pipeline(data_dir="data", output_dir="reports", config_path="config/dete
             bad_quality_findings += 1
     bad_spike_times = {r["timestamp"] for r in telemetry if any(r.get("quality_"+t["signal_name"]) == "BAD_SPIKE" for t in tags)}
     spike_detection_findings = sum(f.get("detection_timestamp") in bad_spike_times for f in machinery)
-    summary = {"provenance": "synthetic", "asset": "DG-01", "vessel": "VESSEL-01", "input_rows": len(telemetry), "sensor_count": len(tags), "baseline_period": {"start": BASELINE_START, "end_exclusive": BASELINE_END}, "baseline_training_rows_by_signal": baseline_counts, "model_type": "per-signal ordinary least squares; load context plus seawater temperature for cooling and ambient temperature for selected temperatures", "detection_configuration": config, "model_count": len(models), "tolerance_by_signal": tolerances, "machinery_finding_count": len(machinery), "sensor_finding_count": len(sensors), "healthy_period_false_machinery_findings": len(healthy_false), "healthy_30min_load_transitions_ge_10pp": transitions, "quality_issue_counts_by_signal": {s:v["quality_counts"] for s,v in diagnostics_by_signal.items()}, "stopped_rows_excluded_from_machinery_detection": sum(c["generator_running"] != "true" for c in context), "limitations": ["Synthetic illustrative relationships and alarms are not validated marine-engineering models.", "OLS and residual tolerance settings are intentionally simple and need validation against real telemetry.", "Reference alarms are fixed thresholds only for benchmark timing; they are not detection thresholds."]}
+    summary = {"provenance": "synthetic", "asset": "DG-01", "vessel": "VESSEL-01", "input_rows": len(telemetry), "sensor_count": len(tags), "observation_period": {"start": telemetry[0]["timestamp"], "end": telemetry[-1]["timestamp"]}, "processed_at": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"), "baseline_period": {"start": BASELINE_START, "end_exclusive": BASELINE_END}, "baseline_training_rows_by_signal": baseline_counts, "model_type": "per-signal ordinary least squares; load context plus seawater temperature for cooling and ambient temperature for selected temperatures", "detection_configuration": config, "model_count": len(models), "tolerance_by_signal": tolerances, "machinery_finding_count": len(machinery), "sensor_finding_count": len(sensors), "healthy_period_false_machinery_findings": len(healthy_false), "healthy_30min_load_transitions_ge_10pp": transitions, "quality_issue_counts_by_signal": {s:v["quality_counts"] for s,v in diagnostics_by_signal.items()}, "stopped_rows_excluded_from_machinery_detection": sum(c["generator_running"] != "true" for c in context), "limitations": ["Synthetic illustrative relationships and alarms are not validated marine-engineering models.", "OLS and residual tolerance settings are intentionally simple and need validation against real telemetry.", "Reference alarms are fixed thresholds only for benchmark timing; they are not detection thresholds."]}
     for name, payload in (("findings.json", findings), ("diagnostics.json", diagnostics_by_signal), ("evaluation.json", {"provenance":"synthetic", "scenario_results":evaluation, "healthy_period_false_machinery_findings":len(healthy_false), "healthy_load_transition_machinery_findings":len([f for f in machinery if f["start_timestamp"] < BASELINE_END]), "isolated_spike_machinery_findings":spike_detection_findings, "stopped_period_machinery_findings":stopped_detection_findings, "poor_quality_machinery_findings":bad_quality_findings}), ("processing_summary.json", summary)):
         (out/name).write_text(json.dumps(payload, indent=2)+"\n", encoding="utf-8")
     return {"findings": findings, "evaluation": evaluation, "summary": summary, "diagnostics": diagnostics_by_signal}

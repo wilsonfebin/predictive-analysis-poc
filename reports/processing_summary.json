@@ -4,6 +4,11 @@
   "vessel": "VESSEL-01",
   "input_rows": 43200,
   "sensor_count": 36,
+  "observation_period": {
+    "start": "2026-09-01T00:00:00Z",
+    "end": "2026-09-30T23:59:00Z"
+  },
+  "processed_at": "2026-11-08T16:14:02Z",
   "baseline_period": {
     "start": "2026-09-01T00:00:00Z",
     "end_exclusive": "2026-09-07T00:00:00Z"
@@ -11,11 +16,11 @@
   "baseline_training_rows_by_signal": {
     "engine_speed_rpm": 7920,
     "generator_load_pct": 7920,
-    "lube_oil_pressure_bar": 7911,
+    "lube_oil_pressure_bar": 7910,
     "lube_oil_temperature_c": 7920,
     "lube_oil_level_pct": 7920,
     "lube_filter_dp_bar": 7920,
-    "jacket_water_outlet_c": 7914,
+    "jacket_water_outlet_c": 7906,
     "jacket_water_pressure_bar": 7920,
     "seawater_inlet_c": 7920,
     "cooler_seawater_dp_bar": 7920,
@@ -23,7 +28,7 @@
     "charge_air_temperature_c": 7920,
     "exhaust_receiver_temp_c": 7920,
     "turbo_speed_rpm": 7920,
-    "fuel_supply_pressure_bar": 7916,
+    "fuel_supply_pressure_bar": 7915,
     "cylinder_01_exhaust_temp_c": 7920,
     "cylinder_02_exhaust_temp_c": 7920,
     "cylinder_03_exhaust_temp_c": 7920,
@@ -42,7 +47,7 @@
     "cylinder_16_exhaust_temp_c": 7920,
     "generator_voltage_v": 7920,
     "generator_current_a": 7920,
-    "generator_frequency_hz": 7913,
+    "generator_frequency_hz": 7914,
     "generator_power_factor": 7920,
     "generator_active_power_kw": 7920
   },
@@ -111,7 +116,7 @@
     "generator_active_power_kw": 3.3017914317178816
   },
   "machinery_finding_count": 4,
-  "sensor_finding_count": 2,
+  "sensor_finding_count": 3,
   "healthy_period_false_machinery_findings": 0,
   "healthy_30min_load_transitions_ge_10pp": 36,
   "quality_issue_counts_by_signal": {
@@ -122,8 +127,8 @@
       "GOOD": 39600
     },
     "lube_oil_pressure_bar": {
-      "GOOD": 39559,
-      "MISSING": 41
+      "GOOD": 39563,
+      "MISSING": 37
     },
     "lube_oil_temperature_c": {
       "GOOD": 39600
@@ -135,8 +140,9 @@
       "GOOD": 39600
     },
     "jacket_water_outlet_c": {
-      "GOOD": 39566,
-      "BAD_SPIKE": 34
+      "GOOD": 39553,
+      "BAD_SPIKE": 33,
+      "MISSING": 14
     },
     "jacket_water_pressure_bar": {
       "GOOD": 39600
@@ -219,8 +225,8 @@
       "GOOD": 39600
     },
     "generator_frequency_hz": {
-      "GOOD": 39564,
-      "BAD_QUALITY": 36
+      "GOOD": 39565,
+      "BAD_QUALITY": 35
     },
     "generator_power_factor": {
       "GOOD": 39600

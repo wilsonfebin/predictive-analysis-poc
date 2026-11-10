@@ -26,3 +26,5 @@ Full per-signal descriptions and valid ranges are in `data/tags.csv`.
 ## Quality interpretation
 
 Quality is independent of anomaly state. `GOOD` is the only ordinary valid status. `MISSING` has no value; `STALE` is a frozen signal labelled stale after an hour; `BAD_SPIKE` and `BAD_QUALITY` mark suspect readings; `UNCERTAIN` is retained but not asserted as valid. This Phase 1 generator records status; downstream handling belongs to Phase 2.
+
+The generator places quality events across the full period using an independent seeded random schedule. It also injects three seven-minute jacket-water missing-data clusters. The chart API retains every quality-excluded timestamp before reducing ordinary telemetry points for display; the quality strip therefore shows the full-window exclusions.

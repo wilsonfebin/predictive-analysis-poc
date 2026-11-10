@@ -65,8 +65,10 @@ def _machinery_path(state):
     maintenance = _read_json(_data_path("maintenance_reference.json"))
     finding = state["finding"]
     system = next((s for s in maintenance["systems"] if s["system"] == finding.get("system")), {})
+    signal_actions = system.get("signal_maintenance_actions", {})
+    selected = next((signal_actions[signal] for signal in finding.get("affected_sensors", []) if signal in signal_actions), None)
     actions = system.get("maintenance_actions") or []
-    selected = actions[0] if actions else {"description": finding.get("recommended_next_action", "Inspect affected system"), "spares": []}
+    selected = selected or (actions[0] if actions else {"description": finding.get("recommended_next_action", "Inspect affected system"), "spares": []})
     inventory = {p["part_id"]: p for p in maintenance.get("inventory", [])}
     return {"maintenance_reference": {"route": "machinery_inspection", "action": selected.get("description", finding.get("recommended_next_action")), "spare_parts": [{"part_id": p, "description": inventory.get(p, {}).get("description", "Mock spare part"), "quantity_available": inventory.get(p, {}).get("quantity_available", 0)} for p in selected.get("spares", [])], "machinery_work_order": False}}
 

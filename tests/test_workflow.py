@@ -38,6 +38,19 @@ class WorkflowTests(unittest.TestCase):
         self.assertTrue(result["human_review_required"])
         self.assertTrue(result["validation"]["valid"])
 
+    def test_each_machinery_scenario_uses_signal_specific_maintenance_reference(self):
+        expected = {
+            "jacket_water_outlet_c":("Inspect and clean cooling-water cooler", {"GASKET-COOL-01", "FILTER-SW-01"}),
+            "charge_air_temperature_c":("Inspect charge-air cooler and associated air-side path", {"GASKET-CHARGE-AIR-01", "SEAL-CHARGE-AIR-01"}),
+            "lube_oil_pressure_bar":("Inspect lubrication circuit and renew filter if required", {"FILTER-LO-01"}),
+            "cylinder_07_exhaust_temp_c":("Inspect cylinder combustion condition", {"INJECTOR-SEAL-01"}),
+        }
+        for signal, (action, spare_ids) in expected.items():
+            finding_id = next(f["finding_id"] for f in FINDINGS if signal in f.get("affected_sensors", []))
+            result = execute_workflow(finding_id, mode="disabled")
+            self.assertEqual(result["maintenance_reference"]["action"], action)
+            self.assertEqual({p["part_id"] for p in result["maintenance_reference"]["spare_parts"]}, spare_ids)
+
     def test_sensor_fault_routes_to_instrument_check_without_work_order(self):
         result = execute_workflow(SENSOR_ID, mode="disabled")
         self.assertEqual(result["classification"], "sensor")

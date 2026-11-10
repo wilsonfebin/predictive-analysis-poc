@@ -5,7 +5,7 @@ from pathlib import Path
 
 from src.predictive import (
     InputValidationError, calculate_residuals, detect_machinery, diagnostics,
-    evaluate, fit_baselines, sensor_findings, validate_inputs, valid_observation,
+    evaluate, fit_baselines, run_pipeline, sensor_findings, validate_inputs, valid_observation,
 )
 
 
@@ -65,6 +65,64 @@ class PredictiveTests(unittest.TestCase):
         self.assertEqual(len(findings), 1)
         self.assertEqual(findings[0]["category"], "machinery_degradation")
         self.assertGreater(findings[0]["detection_timestamp"], findings[0]["start_timestamp"])
+
+    def test_severity_uses_detection_time_and_records_only_later_escalation(self):
+        tags = [tag()]
+        contexts = [context(i) for i in range(200)]
+        telemetry = [row(i, 10 if i < 20 else (13 if i < 140 else 14.5)) for i in range(200)]
+        config = {"persistence_window_running_minutes":180,"persistence_required_minutes":120,
+                  "minimum_tolerance_by_unit":{"degC":1},"baseline_rmse_multiplier":4}
+        args = (telemetry, contexts, tags, {"test_temp":{"features":[],"coefficients":[10]}},
+                {"test_temp":0}, config, {"systems":[]})
+
+        at_detection = detect_machinery(telemetry[:140], contexts[:140], *args[2:])[0]
+        complete_event = detect_machinery(*args)[0]
+        self.assertEqual(at_detection["detection_timestamp"], complete_event["detection_timestamp"])
+        self.assertEqual(complete_event["initial_severity"], "medium")
+        self.assertEqual(complete_event["initial_severity_evidence"][0]["evaluation_timestamp"], complete_event["detection_timestamp"])
+        self.assertEqual(at_detection["severity"], "medium")
+        self.assertEqual(at_detection["severity_escalations"], [])
+        self.assertEqual(complete_event["severity"], "high")
+        self.assertEqual(len(complete_event["severity_escalations"]), 1)
+        escalation = complete_event["severity_escalations"][0]
+        self.assertGreater(escalation["escalation_timestamp"], complete_event["detection_timestamp"])
+        self.assertEqual(escalation["previous_severity"], "medium")
+        self.assertEqual(escalation["new_severity"], "high")
+        self.assertEqual(escalation["supporting_evidence"]["timestamp"], escalation["escalation_timestamp"])
+        self.assertGreaterEqual(escalation["supporting_evidence"]["max_absolute_deviation_ratio"], 4)
+
+    def test_existing_synthetic_findings_start_medium_and_escalate_after_detection(self):
+        with tempfile.TemporaryDirectory() as temp:
+            result = run_pipeline(output_dir=temp)
+        machinery = [f for f in result["findings"] if f["category"] == "machinery_degradation"]
+        self.assertEqual([f["finding_id"] for f in machinery], ["MACH-001", "MACH-002", "MACH-003", "MACH-004"])
+        self.assertEqual([f["initial_severity"] for f in machinery], ["medium"] * 4)
+        self.assertEqual([f["severity"] for f in machinery], ["high"] * 4)
+        self.assertEqual([f["detection_timestamp"] for f in machinery], [
+            "2026-09-20T15:01:00Z", "2026-09-13T03:50:00Z",
+            "2026-09-21T15:01:00Z", "2026-09-17T13:27:00Z",
+        ])
+        eval_by_scenario = {row["scenario_id"]:row for row in result["evaluation"]}
+        self.assertEqual([(eval_by_scenario[s]["fixed_alarm_crossing_timestamp"], eval_by_scenario[s]["predictive_lead_time_minutes"]) for s in ("F-CYL-01", "F-COOL-01", "F-COOL-02", "F-LUBE-01")], [
+            ("2026-09-24T11:31:00Z", 5550), ("2026-09-24T12:44:00Z", 16374),
+            ("2026-09-23T11:01:00Z", 2640), ("2026-09-24T20:40:00Z", 10513),
+        ])
+        self.assertEqual(result["summary"]["observation_period"], {"start":"2026-09-01T00:00:00Z", "end":"2026-09-30T23:59:00Z"})
+        self.assertTrue(result["summary"]["processed_at"].endswith("Z"))
+        recommendations = {f["affected_sensors"][0]:f["recommended_next_action"] for f in machinery}
+        self.assertEqual(recommendations["jacket_water_outlet_c"], "Inspect and clean cooling-water cooler")
+        self.assertEqual(recommendations["charge_air_temperature_c"], "Inspect charge-air cooler and associated air-side path")
+        self.assertEqual(recommendations["lube_oil_pressure_bar"], "Inspect lubrication circuit and renew filter if required")
+        self.assertEqual(recommendations["cylinder_07_exhaust_temp_c"], "Inspect cylinder combustion condition")
+        for finding in machinery:
+            self.assertTrue(finding["severity_escalations"])
+            self.assertTrue(all(e["escalation_timestamp"] > finding["detection_timestamp"] for e in finding["severity_escalations"]))
+            self.assertEqual(finding["initial_severity_evidence"][0]["evaluation_timestamp"], finding["detection_timestamp"])
+            self.assertTrue(all(e["supporting_evidence"]["evaluation_timestamp"] == e["escalation_timestamp"] and e["supporting_evidence"]["max_absolute_deviation_ratio"] >= 4 for e in finding["severity_escalations"]))
+        sensor_result = next(row for row in result["evaluation"] if row["scenario_id"] == "F-SENSOR-01")
+        self.assertTrue(sensor_result["instrument_check_routed"])
+        self.assertFalse(sensor_result["machinery_finding_created"])
+        self.assertEqual(result["summary"]["healthy_period_false_machinery_findings"], 0)
 
     def test_stale_frozen_sensor_routes_to_instrument_check_only(self):
         tags = [tag(signal="test_temp")]

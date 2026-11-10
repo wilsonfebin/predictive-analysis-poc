@@ -20,6 +20,7 @@ class DatasetGenerationTests(unittest.TestCase):
             with (root / "tags.csv").open() as f:
                 tags = list(csv.DictReader(f))
             truth = json.loads((root / "ground_truth.json").read_text())
+            maintenance = json.loads((root / "maintenance_reference.json").read_text())
             self.assertEqual(len(rows), MINUTES)
             self.assertEqual(len(context), MINUTES)
             self.assertEqual(len(tags), 36)
@@ -36,8 +37,18 @@ class DatasetGenerationTests(unittest.TestCase):
             for scenario in truth["fault_scenarios"]:
                 for signal in scenario["affected_signals"]:
                     self.assertEqual(tag_systems[signal], scenario["system"], scenario["scenario_id"] + " system must match tag metadata")
+            cooling = next(s for s in maintenance["systems"] if s["system"] == "cooling")
+            self.assertEqual(cooling["maintenance_actions"][0]["action_id"], "MA-COOL-01")
+            self.assertEqual(cooling["signal_maintenance_actions"]["charge_air_temperature_c"]["action_id"], "MA-COOL-02")
+            stock = {p["part_id"]:p["quantity_available"] for p in maintenance["inventory"]}
+            self.assertEqual(stock["GASKET-CHARGE-AIR-01"], 1)
+            self.assertEqual(stock["SEAL-CHARGE-AIR-01"], 1)
             self.assertTrue(any(r["generator_running"] == "false" for r in context))
             self.assertTrue(any(q != "GOOD" for r in rows for q in [r["quality_lube_oil_pressure_bar"], r["quality_jacket_water_outlet_c"]]))
+            spike_times = [r["timestamp"] for r in rows if r["quality_jacket_water_outlet_c"] == "BAD_SPIKE"]
+            self.assertGreater(len(set(t[11:16] for t in spike_times)), 8, "post-training spike injections should not repeat at a fixed time of day")
+            jacket_missing = [i for i,r in enumerate(rows) if r["quality_jacket_water_outlet_c"] == "MISSING"]
+            self.assertTrue(any(b-a == 1 for a,b in zip(jacket_missing,jacket_missing[1:])), "clustered jacket-water outages should be present")
             running = {r["timestamp"]: r["generator_running"] == "true" for r in context}
             for scenario in truth["fault_scenarios"]:
                 alarm = scenario["alarm"]

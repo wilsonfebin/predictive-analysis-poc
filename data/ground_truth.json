@@ -12,7 +12,7 @@
     "start": "2026-09-01T00:00:00Z",
     "end_exclusive": "2026-09-07T00:00:00Z",
     "selection": "Before the earliest injected fault onset; exclude all non-GOOD records and verify valid ranges before model fitting.",
-    "limitations": "Contains ordinary stopped periods and periodic quality events; running state and quality filters remain necessary."
+    "limitations": "Contains ordinary stopped periods and randomly timed quality events; running state and quality filters remain necessary."
   },
   "fault_scenarios": [
     {
@@ -97,12 +97,12 @@
     }
   ],
   "data_quality_events": {
-    "missing": "Periodic lube-oil pressure values are blank with MISSING status.",
-    "isolated_spikes": "Periodic jacket-water outlet outliers marked BAD_SPIKE.",
-    "bad_quality": "Periodic generator-frequency records marked BAD_QUALITY.",
-    "uncertain": "Periodic fuel-pressure readings marked UNCERTAIN.",
+    "missing": "Seeded randomized lube-oil pressure missing records, plus three seven-minute clustered jacket-water outages at randomized times.",
+    "isolated_spikes": "Seeded randomized jacket-water outlet outliers marked BAD_SPIKE; their timing is independent of the sensor noise stream.",
+    "bad_quality": "Seeded randomized generator-frequency records marked BAD_QUALITY.",
+    "uncertain": "Seeded randomized fuel-pressure readings marked UNCERTAIN.",
     "stale": "Frozen cooler differential-pressure signal marked STALE after 60 minutes.",
-    "implausible": "The marked BAD_SPIKE values are intentionally outside typical behaviour but remain within tag range; tag-range violations are not separately injected."
+    "implausible": "Marked BAD_SPIKE values are intentionally outside typical behaviour but remain within tag range; tag-range violations are not separately injected."
   },
   "disclaimer": "All telemetry and thresholds are illustrative synthetic data, not validated marine-engineering models."
 }

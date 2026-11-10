@@ -70,11 +70,39 @@ def generate(out_dir, seed=20260901):
     by_name = {t["signal_name"]: t for t in tags}
     scenario = fault_scenarios()
     onset = {f["scenario_id"]: datetime.fromisoformat(f["onset"].replace("Z", "+00:00")) for f in scenario}
+    # Randomize quality events with an independent stream so sensor noise and
+    # fault values stay stable when only quality timing is changed.
+    quality_rng = random.Random(seed ^ 0x5A17C3)
+    protected = {
+        "jacket_water_outlet_c": [datetime(2026, 9, 13, 3, 50, tzinfo=timezone.utc), datetime(2026, 9, 24, 12, 44, tzinfo=timezone.utc)],
+        "lube_oil_pressure_bar": [datetime(2026, 9, 17, 13, 27, tzinfo=timezone.utc), datetime(2026, 9, 24, 20, 40, tzinfo=timezone.utc)],
+        "cylinder_07_exhaust_temp_c": [datetime(2026, 9, 20, 15, 1, tzinfo=timezone.utc), datetime(2026, 9, 24, 11, 31, tzinfo=timezone.utc)],
+        "charge_air_temperature_c": [datetime(2026, 9, 21, 15, 1, tzinfo=timezone.utc), datetime(2026, 9, 23, 11, 1, tzinfo=timezone.utc)],
+    }
+    def safe_quality_index(i, signal):
+        stamp = START + timedelta(minutes=i)
+        return all(abs((stamp - marker).total_seconds()) > 240 * 60 for marker in protected.get(signal, []))
+    candidate_indices = [i for i in range(MINUTES) if safe_quality_index(i, "jacket_water_outlet_c")]
+    jacket_outages = set()
+    outage_starts = []
+    while len(outage_starts) < 3:
+        start_index = quality_rng.choice(candidate_indices)
+        run = set(range(start_index, start_index + 7))
+        if max(run) < MINUTES and not run.intersection(jacket_outages) and all(safe_quality_index(j, "jacket_water_outlet_c") for j in run):
+            outage_starts.append(start_index)
+            jacket_outages.update(run)
+    def random_event_times(signal, count):
+        candidates = [i for i in range(MINUTES) if safe_quality_index(i, signal)]
+        return set(quality_rng.sample(candidates, min(count, len(candidates))))
+    spike_times = random_event_times("jacket_water_outlet_c", 35) - jacket_outages
+    missing_times = random_event_times("lube_oil_pressure_bar", 44)
+    frequency_bad_times = random_event_times("generator_frequency_hz", 39)
+    uncertain_times = random_event_times("fuel_supply_pressure_bar", 27)
     frozen_value = None
     telemetry_path, context_path = out / "telemetry.csv", out / "context.csv"
     signals = [t["signal_name"] for t in tags]
     with telemetry_path.open("w", newline="") as tf, context_path.open("w", newline="") as cf:
-        tw, cw = csv.writer(tf), csv.writer(cf)
+        tw, cw = csv.writer(tf, lineterminator="\n"), csv.writer(cf, lineterminator="\n")
         tw.writerow(["timestamp", "vessel_id", "generator_id"] + signals + ["quality_" + s for s in signals])
         cw.writerow(["timestamp", "vessel_id", "generator_id", "generator_running", "generator_load_pct", "engine_speed_rpm", "ambient_air_temp_c", "seawater_temp_c"])
         for i in range(MINUTES):
@@ -123,22 +151,40 @@ def generate(out_dir, seed=20260901):
                 vals["cooler_seawater_dp_bar"] = frozen_value
             qualities = {s: "GOOD" for s in signals}
             # Deterministic quality events distributed across the healthy period and fault periods.
-            if i % 997 == 211:
+            if i in missing_times:
                 s = "lube_oil_pressure_bar"; vals[s] = ""; qualities[s] = "MISSING"
-            if i % 1237 == 509:
+            if i in spike_times:
                 s = "jacket_water_outlet_c"; vals[s] = float(vals[s]) + 35; qualities[s] = "BAD_SPIKE"
-            if i % 1103 == 641:
+            if i in jacket_outages:
+                s = "jacket_water_outlet_c"; vals[s] = ""; qualities[s] = "MISSING"
+            if i in frequency_bad_times:
                 s = "generator_frequency_hz"; qualities[s] = "BAD_QUALITY"
-            if i % 1601 == 801:
+            if i in uncertain_times:
                 s = "fuel_supply_pressure_bar"; qualities[s] = "UNCERTAIN"
             if ts >= onset["F-SENSOR-01"] + timedelta(minutes=60):
                 qualities["cooler_seawater_dp_bar"] = "STALE"
             tw.writerow([ts.strftime("%Y-%m-%dT%H:%M:%SZ"), VESSEL, GENERATOR] + [vals[s] for s in signals] + [qualities[s] for s in signals])
             cw.writerow([ts.strftime("%Y-%m-%dT%H:%M:%SZ"), VESSEL, GENERATOR, str(running).lower(), round(load*100, 3), round(speed, 3), round(ambient, 3), round(sea, 3)])
     with (out / "tags.csv").open("w", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=list(tags[0])); w.writeheader(); w.writerows(tags)
-    (out / "ground_truth.json").write_text(json.dumps({"provenance":"synthetic","timezone":"UTC","seed":seed,"period":{"start":"2026-09-01T00:00:00Z","end_exclusive":"2026-10-01T00:00:00Z","sampling_minutes":1,"expected_rows":MINUTES},"healthy_training_period":{"start":"2026-09-01T00:00:00Z","end_exclusive":"2026-09-07T00:00:00Z","selection":"Before the earliest injected fault onset; exclude all non-GOOD records and verify valid ranges before model fitting.","limitations":"Contains ordinary stopped periods and periodic quality events; running state and quality filters remain necessary."},"fault_scenarios":scenario,"data_quality_events":{"missing":"Periodic lube-oil pressure values are blank with MISSING status.","isolated_spikes":"Periodic jacket-water outlet outliers marked BAD_SPIKE.","bad_quality":"Periodic generator-frequency records marked BAD_QUALITY.","uncertain":"Periodic fuel-pressure readings marked UNCERTAIN.","stale":"Frozen cooler differential-pressure signal marked STALE after 60 minutes.","implausible":"The marked BAD_SPIKE values are intentionally outside typical behaviour but remain within tag range; tag-range violations are not separately injected."},"disclaimer":"All telemetry and thresholds are illustrative synthetic data, not validated marine-engineering models."}, indent=2)+"\n")
+        w = csv.DictWriter(f, fieldnames=list(tags[0]), lineterminator="\n"); w.writeheader(); w.writerows(tags)
+    (out / "ground_truth.json").write_text(json.dumps({"provenance":"synthetic","timezone":"UTC","seed":seed,"period":{"start":"2026-09-01T00:00:00Z","end_exclusive":"2026-10-01T00:00:00Z","sampling_minutes":1,"expected_rows":MINUTES},"healthy_training_period":{"start":"2026-09-01T00:00:00Z","end_exclusive":"2026-09-07T00:00:00Z","selection":"Before the earliest injected fault onset; exclude all non-GOOD records and verify valid ranges before model fitting.","limitations":"Contains ordinary stopped periods and randomly timed quality events; running state and quality filters remain necessary."},"fault_scenarios":scenario,"data_quality_events":{"missing":"Seeded randomized lube-oil pressure missing records, plus three seven-minute clustered jacket-water outages at randomized times.","isolated_spikes":"Seeded randomized jacket-water outlet outliers marked BAD_SPIKE; their timing is independent of the sensor noise stream.","bad_quality":"Seeded randomized generator-frequency records marked BAD_QUALITY.","uncertain":"Seeded randomized fuel-pressure readings marked UNCERTAIN.","stale":"Frozen cooler differential-pressure signal marked STALE after 60 minutes.","implausible":"Marked BAD_SPIKE values are intentionally outside typical behaviour but remain within tag range; tag-range violations are not separately injected."},"disclaimer":"All telemetry and thresholds are illustrative synthetic data, not validated marine-engineering models."}, indent=2)+"\n")
     (out / "maintenance_reference.json").write_text(json.dumps({"provenance":"synthetic mock reference data","asset":"DG-01","systems":[{"system":"cooling","fault_categories":["high_temperature","cooler_degradation"],"inspection_actions":["Check cooling-water flow and cooler condition","Inspect seawater-side strainer and heat-transfer surfaces"],"maintenance_actions":[{"action_id":"MA-COOL-01","description":"Inspect and clean cooling-water cooler","spares":["GASKET-COOL-01","FILTER-SW-01"]}]},{"system":"lubrication","fault_categories":["low_pressure"],"inspection_actions":["Verify pressure with an independent gauge","Inspect filters and pump condition"],"maintenance_actions":[{"action_id":"MA-LUBE-01","description":"Inspect lubrication circuit and renew filter if required","spares":["FILTER-LO-01"]}]},{"system":"combustion","fault_categories":["cylinder_temperature_imbalance"],"inspection_actions":["Compare cylinder exhaust temperatures and inspect the affected cylinder"],"maintenance_actions":[{"action_id":"MA-COMB-01","description":"Inspect cylinder combustion condition","spares":["INJECTOR-SEAL-01"]}]},{"system":"instrumentation","fault_categories":["frozen","missing","stale","implausible"],"inspection_actions":["Check transmitter, wiring and signal freshness; compare with an independent measurement"],"maintenance_actions":[]}],"inventory":[{"part_id":"GASKET-COOL-01","description":"Cooler gasket set","quantity_available":2},{"part_id":"FILTER-SW-01","description":"Seawater filter element","quantity_available":4},{"part_id":"FILTER-LO-01","description":"Lube oil filter element","quantity_available":3},{"part_id":"INJECTOR-SEAL-01","description":"Injector seal kit","quantity_available":1}]}, indent=2)+"\n")
+    maintenance_path = out / "maintenance_reference.json"
+    maintenance = json.loads(maintenance_path.read_text(encoding="utf-8"))
+    cooling = next(system for system in maintenance["systems"] if system["system"] == "cooling")
+    cooling["signal_maintenance_actions"] = {
+        "charge_air_temperature_c": {
+            "action_id": "MA-COOL-02",
+            "description": "Inspect charge-air cooler and associated air-side path",
+            "spares": ["GASKET-CHARGE-AIR-01", "SEAL-CHARGE-AIR-01"],
+            "provenance": "synthetic mock reference; not an approved vessel procedure",
+        }
+    }
+    maintenance["inventory"].extend([
+        {"part_id":"GASKET-CHARGE-AIR-01","description":"Mock charge-air cooler gasket set","quantity_available":1},
+        {"part_id":"SEAL-CHARGE-AIR-01","description":"Mock charge-air cooler seal kit","quantity_available":1},
+    ])
+    maintenance_path.write_text(json.dumps(maintenance, indent=2)+"\n", encoding="utf-8")
 
 
 if __name__ == "__main__":

@@ -21,7 +21,18 @@
             "FILTER-SW-01"
           ]
         }
-      ]
+      ],
+      "signal_maintenance_actions": {
+        "charge_air_temperature_c": {
+          "action_id": "MA-COOL-02",
+          "description": "Inspect charge-air cooler and associated air-side path",
+          "spares": [
+            "GASKET-CHARGE-AIR-01",
+            "SEAL-CHARGE-AIR-01"
+          ],
+          "provenance": "synthetic mock reference; not an approved vessel procedure"
+        }
+      }
     },
     {
       "system": "lubrication",
@@ -93,6 +104,16 @@
     {
       "part_id": "INJECTOR-SEAL-01",
       "description": "Injector seal kit",
+      "quantity_available": 1
+    },
+    {
+      "part_id": "GASKET-CHARGE-AIR-01",
+      "description": "Mock charge-air cooler gasket set",
+      "quantity_available": 1
+    },
+    {
+      "part_id": "SEAL-CHARGE-AIR-01",
+      "description": "Mock charge-air cooler seal kit",
       "quantity_available": 1
     }
   ]

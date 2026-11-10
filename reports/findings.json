@@ -14,7 +14,47 @@
     "actual_value": 648.6229,
     "expected_value": 270.3548,
     "deviation": 378.2682,
+    "initial_severity": "medium",
+    "initial_severity_evidence": [
+      {
+        "signal": "cylinder_07_exhaust_temp_c",
+        "unit": "degC",
+        "criticality": "high",
+        "qualifying_observation_count": 120,
+        "tolerance": 1.644813,
+        "max_absolute_deviation_ratio": 2.975605,
+        "evaluation_timestamp": "2026-09-20T15:01:00Z",
+        "rule": "High if ratio >= 4 or high-criticality count >= 240; Medium if ratio >= 2 or criticality is high/medium; otherwise Low.",
+        "timestamp": "2026-09-20T14:49:00Z",
+        "actual": 400.816286,
+        "expected": 395.921972,
+        "residual": 4.894314
+      }
+    ],
     "severity": "high",
+    "severity_escalations": [
+      {
+        "finding_id": "MACH-001",
+        "previous_severity": "medium",
+        "new_severity": "high",
+        "escalation_timestamp": "2026-09-20T15:43:00Z",
+        "supporting_evidence": {
+          "signal": "cylinder_07_exhaust_temp_c",
+          "unit": "degC",
+          "criticality": "high",
+          "qualifying_observation_count": 161,
+          "tolerance": 1.644813,
+          "max_absolute_deviation_ratio": 4.089702,
+          "evaluation_timestamp": "2026-09-20T15:43:00Z",
+          "rule": "High if ratio >= 4 or high-criticality count >= 240; Medium if ratio >= 2 or criticality is high/medium; otherwise Low.",
+          "timestamp": "2026-09-20T15:43:00Z",
+          "actual": 387.646246,
+          "expected": 380.919453,
+          "residual": 6.726794
+        },
+        "reason": "The High severity rule was crossed at 4.090x the configured residual tolerance."
+      }
+    ],
     "detection_evidence": [
       {
         "signal": "cylinder_07_exhaust_temp_c",
@@ -45,18 +85,58 @@
     ],
     "category": "machinery_degradation",
     "start_timestamp": "2026-09-12T22:55:00Z",
-    "end_timestamp": "2026-09-30T23:59:00Z",
+    "end_timestamp": "2026-09-30T23:58:00Z",
     "detection_timestamp": "2026-09-13T03:50:00Z",
-    "actual_value": 88.2136,
-    "expected_value": 64.153,
-    "deviation": 24.0605,
+    "actual_value": 88.2603,
+    "expected_value": 64.2003,
+    "deviation": 24.06,
+    "initial_severity": "medium",
+    "initial_severity_evidence": [
+      {
+        "signal": "jacket_water_outlet_c",
+        "unit": "degC",
+        "criticality": "high",
+        "qualifying_observation_count": 120,
+        "tolerance": 1.0,
+        "max_absolute_deviation_ratio": 1.467749,
+        "evaluation_timestamp": "2026-09-13T03:50:00Z",
+        "rule": "High if ratio >= 4 or high-criticality count >= 240; Medium if ratio >= 2 or criticality is high/medium; otherwise Low.",
+        "timestamp": "2026-09-13T03:16:00Z",
+        "actual": 69.660683,
+        "expected": 68.192933,
+        "residual": 1.467749
+      }
+    ],
     "severity": "high",
+    "severity_escalations": [
+      {
+        "finding_id": "MACH-002",
+        "previous_severity": "medium",
+        "new_severity": "high",
+        "escalation_timestamp": "2026-09-15T04:17:00Z",
+        "supporting_evidence": {
+          "signal": "jacket_water_outlet_c",
+          "unit": "degC",
+          "criticality": "high",
+          "qualifying_observation_count": 179,
+          "tolerance": 1.0,
+          "max_absolute_deviation_ratio": 4.002059,
+          "evaluation_timestamp": "2026-09-15T04:17:00Z",
+          "rule": "High if ratio >= 4 or high-criticality count >= 240; Medium if ratio >= 2 or criticality is high/medium; otherwise Low.",
+          "timestamp": "2026-09-15T04:17:00Z",
+          "actual": 67.706466,
+          "expected": 63.704408,
+          "residual": 4.002059
+        },
+        "reason": "The High severity rule was crossed at 4.002x the configured residual tolerance."
+      }
+    ],
     "detection_evidence": [
       {
         "signal": "jacket_water_outlet_c",
-        "actual": 88.2136,
-        "expected": 64.153,
-        "deviation": 24.0605,
+        "actual": 88.2603,
+        "expected": 64.2003,
+        "deviation": 24.06,
         "unit": "degC",
         "persistence_valid_minutes": 180
       }
@@ -90,7 +170,47 @@
     "actual_value": 60.6402,
     "expected_value": 43.7564,
     "deviation": 16.8838,
+    "initial_severity": "medium",
+    "initial_severity_evidence": [
+      {
+        "signal": "charge_air_temperature_c",
+        "unit": "degC",
+        "criticality": "medium",
+        "qualifying_observation_count": 120,
+        "tolerance": 3.720456,
+        "max_absolute_deviation_ratio": 1.622804,
+        "evaluation_timestamp": "2026-09-21T15:01:00Z",
+        "rule": "High if ratio >= 4 or high-criticality count >= 240; Medium if ratio >= 2 or criticality is high/medium; otherwise Low.",
+        "timestamp": "2026-09-21T14:53:00Z",
+        "actual": 60.916139,
+        "expected": 54.878569,
+        "residual": 6.037569
+      }
+    ],
     "severity": "high",
+    "severity_escalations": [
+      {
+        "finding_id": "MACH-003",
+        "previous_severity": "medium",
+        "new_severity": "high",
+        "escalation_timestamp": "2026-09-28T11:18:00Z",
+        "supporting_evidence": {
+          "signal": "charge_air_temperature_c",
+          "unit": "degC",
+          "criticality": "medium",
+          "qualifying_observation_count": 180,
+          "tolerance": 3.720456,
+          "max_absolute_deviation_ratio": 4.025814,
+          "evaluation_timestamp": "2026-09-28T11:18:00Z",
+          "rule": "High if ratio >= 4 or high-criticality count >= 240; Medium if ratio >= 2 or criticality is high/medium; otherwise Low.",
+          "timestamp": "2026-09-28T11:18:00Z",
+          "actual": 73.297738,
+          "expected": 58.319874,
+          "residual": 14.977864
+        },
+        "reason": "The High severity rule was crossed at 4.026x the configured residual tolerance."
+      }
+    ],
     "detection_evidence": [
       {
         "signal": "charge_air_temperature_c",
@@ -102,15 +222,15 @@
       }
     ],
     "explanation": "Persistent deviation in cooling on charge_air_temperature_c signal(s), supported by 180 valid observations.",
-    "recommended_next_action": "Inspect and clean cooling-water cooler",
+    "recommended_next_action": "Inspect charge-air cooler and associated air-side path",
     "spare_parts": [
       {
-        "part_id": "GASKET-COOL-01",
-        "available": 2
+        "part_id": "GASKET-CHARGE-AIR-01",
+        "available": 1
       },
       {
-        "part_id": "FILTER-SW-01",
-        "available": 4
+        "part_id": "SEAL-CHARGE-AIR-01",
+        "available": 1
       }
     ],
     "provenance": "synthetic"
@@ -129,14 +249,54 @@
     "detection_timestamp": "2026-09-17T13:27:00Z",
     "actual_value": 2.163,
     "expected_value": 4.5829,
-    "deviation": -2.42,
+    "deviation": -2.4199,
+    "initial_severity": "medium",
+    "initial_severity_evidence": [
+      {
+        "signal": "lube_oil_pressure_bar",
+        "unit": "bar",
+        "criticality": "high",
+        "qualifying_observation_count": 120,
+        "tolerance": 0.08,
+        "max_absolute_deviation_ratio": 1.573739,
+        "evaluation_timestamp": "2026-09-17T13:27:00Z",
+        "rule": "High if ratio >= 4 or high-criticality count >= 240; Medium if ratio >= 2 or criticality is high/medium; otherwise Low.",
+        "timestamp": "2026-09-17T13:03:00Z",
+        "actual": 4.581227,
+        "expected": 4.707126,
+        "residual": -0.125899
+      }
+    ],
     "severity": "high",
+    "severity_escalations": [
+      {
+        "finding_id": "MACH-004",
+        "previous_severity": "medium",
+        "new_severity": "high",
+        "escalation_timestamp": "2026-09-18T16:03:00Z",
+        "supporting_evidence": {
+          "signal": "lube_oil_pressure_bar",
+          "unit": "bar",
+          "criticality": "high",
+          "qualifying_observation_count": 180,
+          "tolerance": 0.08,
+          "max_absolute_deviation_ratio": 4.157381,
+          "evaluation_timestamp": "2026-09-18T16:03:00Z",
+          "rule": "High if ratio >= 4 or high-criticality count >= 240; Medium if ratio >= 2 or criticality is high/medium; otherwise Low.",
+          "timestamp": "2026-09-18T16:03:00Z",
+          "actual": 4.35445,
+          "expected": 4.68704,
+          "residual": -0.33259
+        },
+        "reason": "The High severity rule was crossed at 4.157x the configured residual tolerance."
+      }
+    ],
     "detection_evidence": [
       {
         "signal": "lube_oil_pressure_bar",
         "actual": 2.163,
         "expected": 4.5829,
-        "deviation": -2.42,
+        "deviation": -2.4199,
         "unit": "bar",
         "persistence_valid_minutes": 179
       }
@@ -160,15 +320,15 @@
       "lube_oil_pressure_bar"
     ],
     "category": "sensor_fault",
-    "start_timestamp": "2026-09-01T03:31:00Z",
-    "end_timestamp": "2026-09-30T22:02:00Z",
+    "start_timestamp": "2026-09-01T04:10:00Z",
+    "end_timestamp": "2026-09-30T22:52:00Z",
     "severity": "low",
     "detection_evidence": {
       "quality_status": "MISSING",
-      "count": 41,
+      "count": 37,
       "quality_period": {
-        "first_timestamp": "2026-09-01T03:31:00Z",
-        "last_timestamp": "2026-09-30T22:02:00Z"
+        "first_timestamp": "2026-09-01T04:10:00Z",
+        "last_timestamp": "2026-09-30T22:52:00Z"
       },
       "frozen_candidates": []
     },
@@ -180,6 +340,33 @@
   },
   {
     "finding_id": "SENS-002",
+    "vessel_id": "VESSEL-01",
+    "equipment_id": "DG-01",
+    "system": "cooling",
+    "affected_sensors": [
+      "jacket_water_outlet_c"
+    ],
+    "category": "sensor_fault",
+    "start_timestamp": "2026-09-01T20:49:00Z",
+    "end_timestamp": "2026-09-23T16:32:00Z",
+    "severity": "low",
+    "detection_evidence": {
+      "quality_status": "MISSING",
+      "count": 14,
+      "quality_period": {
+        "first_timestamp": "2026-09-01T20:49:00Z",
+        "last_timestamp": "2026-09-23T16:32:00Z"
+      },
+      "frozen_candidates": []
+    },
+    "explanation": "Missing telemetry values were explicitly excluded from machinery scoring.",
+    "recommended_next_action": "Check instrument signal availability and data acquisition path.",
+    "maintenance_route": "instrument_inspection",
+    "machinery_work_order": false,
+    "provenance": "synthetic"
+  },
+  {
+    "finding_id": "SENS-003",
     "vessel_id": "VESSEL-01",
     "equipment_id": "DG-01",
     "system": "cooling",

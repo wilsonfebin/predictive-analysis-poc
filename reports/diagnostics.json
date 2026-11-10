@@ -25,8 +25,8 @@
   },
   "lube_oil_pressure_bar": {
     "quality_counts": {
-      "GOOD": 39559,
-      "MISSING": 41
+      "GOOD": 39563,
+      "MISSING": 37
     },
     "quality_period": {
       "GOOD": {
@@ -34,8 +34,8 @@
         "last_timestamp": "2026-09-30T23:59:00Z"
       },
       "MISSING": {
-        "first_timestamp": "2026-09-01T03:31:00Z",
-        "last_timestamp": "2026-09-30T22:02:00Z"
+        "first_timestamp": "2026-09-01T04:10:00Z",
+        "last_timestamp": "2026-09-30T22:52:00Z"
       }
     },
     "frozen_candidates": []
@@ -78,17 +78,22 @@
   },
   "jacket_water_outlet_c": {
     "quality_counts": {
-      "GOOD": 39566,
-      "BAD_SPIKE": 34
+      "GOOD": 39553,
+      "BAD_SPIKE": 33,
+      "MISSING": 14
     },
     "quality_period": {
       "GOOD": {
         "first_timestamp": "2026-09-01T02:00:00Z",
-        "last_timestamp": "2026-09-30T23:59:00Z"
+        "last_timestamp": "2026-09-30T23:58:00Z"
       },
       "BAD_SPIKE": {
-        "first_timestamp": "2026-09-01T08:29:00Z",
-        "last_timestamp": "2026-09-30T13:27:00Z"
+        "first_timestamp": "2026-09-01T08:35:00Z",
+        "last_timestamp": "2026-09-30T23:59:00Z"
+      },
+      "MISSING": {
+        "first_timestamp": "2026-09-01T20:49:00Z",
+        "last_timestamp": "2026-09-23T16:32:00Z"
       }
     },
     "frozen_candidates": []
@@ -200,8 +205,8 @@
         "last_timestamp": "2026-09-30T23:59:00Z"
       },
       "UNCERTAIN": {
-        "first_timestamp": "2026-09-01T13:21:00Z",
-        "last_timestamp": "2026-09-30T11:07:00Z"
+        "first_timestamp": "2026-09-01T06:55:00Z",
+        "last_timestamp": "2026-09-30T11:27:00Z"
       }
     },
     "frozen_candidates": []
@@ -424,8 +429,8 @@
   },
   "generator_frequency_hz": {
     "quality_counts": {
-      "GOOD": 39564,
-      "BAD_QUALITY": 36
+      "GOOD": 39565,
+      "BAD_QUALITY": 35
     },
     "quality_period": {
       "GOOD": {
@@ -433,8 +438,8 @@
         "last_timestamp": "2026-09-30T23:59:00Z"
       },
       "BAD_QUALITY": {
-        "first_timestamp": "2026-09-01T10:41:00Z",
-        "last_timestamp": "2026-09-30T13:15:00Z"
+        "first_timestamp": "2026-09-02T14:01:00Z",
+        "last_timestamp": "2026-09-30T18:22:00Z"
       }
     },
     "frozen_candidates": []
