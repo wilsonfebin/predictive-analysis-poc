@@ -1,28 +1,119 @@
-# Phase 1 progress (2026-11-08)
+# Marine Generator Predictive Maintenance POC — Delivery Brief
 
-Phase 1 synthetic data generation is implemented. The generator emits 43,200 UTC minute records for one generator, 36 signals, aligned operating context, tag metadata, mock maintenance reference data and separate ground truth. It includes five illustrative scenarios and explicit quality flags. Seed defaults to 20260901 and can be overridden. At the Phase 1 checkpoint, analytics and later-phase application work were not yet included.
+**Status:** Phase 1–4 implementation and validation summary, 10 November 2026
 
-All measurements, alarm values and scenario progressions are assumptions for a POC and require marine-engineering validation. The healthy candidate period is 2026-09-01 through 2026-09-06; filter stopped and non-GOOD/out-of-range observations before any future baseline fitting.
+**Asset:** DG-01 / VESSEL-01
 
-Pre-Phase-2 review: the frozen cooler differential-pressure sensor is explicitly marked `STALE` 60 minutes after freezing. The healthy candidate period includes recurring smooth daily load transitions (36 changes of at least 10 percentage points over 30 minutes). Fault progression settings were checked to cross their illustrative fixed alarms while running and after onset; alarm evaluation must ignore stopped intervals.
+**Data provenance:** Synthetic, illustrative only
 
-## Phase 2 progress
+## 1. Project Charter
 
-Implemented a deterministic, dependency-free pipeline in `src/predictive.py`. It validates and aligns the Phase 1 CSV/JSON inputs; fits one ordinary least-squares model per signal on running, GOOD-quality, in-range baseline rows; and uses load context, seawater temperature for cooling signals, and ambient temperature for selected temperature signals. Ground truth is opened only after fitting and detection, for scenario evaluation. Residuals are written as compressed `reports/residuals.csv.gz` records. Detection uses a rolling 180 running-minute window and requires at least 120 valid residuals beyond the sensor-specific tolerance (`max(unit minimum, 4 x baseline RMSE)`). Stopped minutes and unusable quality/range observations are excluded from deviation counts. Sensor quality summaries and a 60-minute constant-value diagnostic keep instrument findings separate from machinery findings.
+### Purpose and objectives
 
-Output contracts: `residuals.csv.gz` contains timestamp, signal, actual, expected, residual, normalized deviation, quality status and operating state. `findings.json` contains grouped machine/sensor finding identity, asset/system, affected sensors, category, timestamps, severity, evidence, explanation and recommended action. `diagnostics.json` records quality counts/periods and frozen candidates per sensor. `evaluation.json` contains per-scenario detection/alarm timestamps, lead time and healthy/data-quality false-finding counts. `processing_summary.json` records validation/run counts, baseline sample counts, model/configuration details and limitations.
+This proof of concept demonstrates condition-based monitoring for one marine diesel generator. It prepares reproducible minute-level synthetic telemetry, estimates context-dependent expected sensor values, detects persistent residuals, distinguishes sensor diagnostics from machinery findings, and presents evidence and mock maintenance recommendations for human review.
 
-Synthetic run results: 4 machinery findings and 2 sensor findings; all 4 machinery scenarios were detected before their running-only, GOOD-quality reference alarm crossings. Predictive lead times were 16,374 min (jacket water), 10,513 min (lube pressure), 5,550 min (cylinder 7 exhaust), and 2,640 min (charge air). The frozen sensor was identified at its STALE indication (8 Sep 04:00Z), routed to instrument inspection, and produced no machinery finding. There were 0 machinery findings in the healthy baseline period, 0 during its 36 measured 30-minute load transitions, 0 at isolated spike timestamps, 0 on stopped periods and 0 at poor-quality detection timestamps. Detailed values are in `reports/evaluation.json`, `reports/findings.json`, `reports/diagnostics.json`, and `reports/processing_summary.json`.
+The intended outcome is a reviewable technical demonstration of data quality treatment, early-warning calculations, explainability, access restrictions, and audit history. It is not a production system or proof of predictive performance on a vessel.
 
-The charge-air scenario classification is consistent across the tag definition, generated tag data, ground truth and mock maintenance reference; its finding maps to the cooling inspection action. Other limitations: all evaluation is synthetic; OLS and tolerance/persistence values are simple assumptions; and these results do not establish real-vessel accuracy. Run with `python3 src/predictive.py`; tests use the existing unittest framework via `python3 -m unittest discover -s tests -v`.
+### Scope and boundaries
 
-## Phase 3 progress
+**Implemented:** 30 days of synthetic data for 36 signals; separate ground truth; deterministic regression and persistence detection; sensor diagnostics; finding/evaluation reports; FastAPI; Streamlit; SQLite review state; one bounded LangGraph workflow; optional OpenAI wording with deterministic fallback; Chief Engineer decisions and audit events; Docker/Compose and GitHub Actions configuration.
 
-Added a FastAPI backend over Phase 2 reports, a Streamlit/Plotly UI, and SQLite persistence for review status, investigation notes, workflow summaries, decisions and audit events. UI screens cover generator overview, sensor actual-versus-expected history, findings, maintenance review and audit history. Sensor history is time-filtered and downsampled while preserving selected deviation and finding markers. Review roles are enforced by API dependencies: Chief Engineer may investigate/decide, Second Engineer may investigate, and Fleet Office is read-only. Decisions require rationale, actor and role; final decisions cannot be overwritten.
+**Excluded:** real vessel, PMS, ERP, or inventory connectivity; automatic work execution; production authentication or deployment; validated marine-engineering models; any LLM authority over detection, severity, recommendations, or decisions.
 
-One bounded LangGraph workflow loads an existing finding, routes sensor diagnostics to an instrument check or machinery findings to maintenance-reference lookup, builds a structured evidence summary, generates an explanation and validates it before human review. LLM-disabled templates are the default. OpenAI wording is optional; missing credentials, provider errors or unsupported factual/numeric claims use the deterministic template. Severity, evidence and recommendations remain Phase 2 outputs; no work order is created.
+### Success criteria
 
-Reproducible setup uses pinned direct dependencies in `requirements.txt`, `Dockerfile` and `docker-compose.yml`; SQLite persists in a named volume. `.github/workflows/ci.yml` runs the tests and builds the Docker image without OpenAI credentials. Local API and Streamlit startup were smoke-tested, and Streamlit `AppTest` rendered the primary pages and Plotly charts. The full Phase 1–3 unittest suite passes (19 tests). Docker Compose configuration parses, but Docker image build/startup could not be verified in this environment because the Docker CLI has no running daemon (the installed Docker.app has no executable). CI is configured but has not been run on GitHub. OpenAI fallback and injected-client success/failure paths were tested; no live OpenAI API request was made.
+The project is successful as a POC when a reviewer can regenerate the synthetic input, run the deterministic pipeline, inspect findings and lead times, exercise the bounded review workflow, verify server-side role restrictions, and reproduce tests from a clean Python 3.11 setup. See [`../reports/PHASE_4_ACCEPTANCE_REPORT.md`](../reports/PHASE_4_ACCEPTANCE_REPORT.md) for the current evidence and verification gaps.
 
-Known limitations: demo Basic Auth credentials are for local review only; SQLite and single-process hosting are POC choices; the UI/API assume the generated Phase 2 reports exist; no production identity, hardening, real integrations, deployment or real telemetry validation is included. See `README.md` for startup, demo roles, LLM configuration, API documentation and test commands. Phase 4 has not been started.
+## 2. Requirements Traceability
 
+| Requirement | Implementation / evidence | Status |
+|---|---|---|
+| 30 days, 36 signals, explicit context and tags | `scripts/generate_dataset.py`; `data/telemetry.csv`, `context.csv`, `tags.csv`; dataset tests | Implemented; generation tests pass |
+| Keep scenario labels out of model inputs | Separate `data/ground_truth.json`; loader/model boundary in `src/predictive.py` | Implemented; tested |
+| Quality, valid ranges, running-state treatment | `src/predictive.py`; `docs/SYNTHETIC_DATA_ASSUMPTIONS.md` | Implemented; tested |
+| Context-aware expected values and persistent drift | Per-signal OLS, load context, seawater for cooling, configured persistence/tolerances | Implemented; synthetic assumptions only |
+| Sensor/machinery separation and maintenance mapping | `reports/findings.json`; `data/maintenance_reference.json`; workflow tests | Implemented; tested |
+| Compare predictive detection with fixed alarms | `reports/evaluation.json`; detailed below | Implemented; synthetic benchmark |
+| Review, roles, decisions and audit | `src/api.py`, `src/storage.py`; API tests | Implemented; tests verify denied roles and decision recording |
+| Overview, sensors, findings and review screens | `app/streamlit_app.py`; `tests/test_ui.py` AppTest | Implemented; render tests pass |
+| Bounded workflow and optional LLM wording | `src/workflow.py`; `tests/test_workflow.py` | Implemented; disabled, missing-key, failure, and validation paths tested |
+| Reproducible setup, Docker, CI | `README.md`, `Dockerfile`, `docker-compose.yml`, `.github/workflows/ci.yml` | Files/config present; see verification status |
+
+## 3. Solution Architecture
+
+The codebase is a small Python application. The standard-library generator creates aligned telemetry, context, tag metadata, maintenance reference data, and separate ground truth. The dependency-free Phase 2 pipeline uses standard-library input handling and direct ordinary least-squares calculations to fit per-signal expectations on the documented healthy candidate period. It applies data quality, operating-state, residual tolerance, and persistence rules, then writes JSON/CSV reports under `reports/`.
+
+FastAPI reads those reports and raw input files without rewriting them. It serves health, overview, sensor history, findings, investigation, workflow, decision, and audit endpoints. SQLite stores investigation notes, review state, workflow summaries, and append-only decisions/audit events. Streamlit consumes the API and Plotly renders monitoring charts. A single conditional LangGraph workflow routes sensor findings to instrument inspection and machinery findings to mock maintenance lookup. OpenAI is optional and may only rewrite an evidence-bounded explanation; deterministic wording is the default and fallback.
+
+### Repository map
+
+| Path | Purpose |
+|---|---|
+| `scripts/generate_dataset.py` | Reproducible synthetic input generation |
+| `data/` | Telemetry, context, tags, ground truth, maintenance reference |
+| `config/detection.json` | Baseline period, accepted quality, tolerances, persistence and grouping settings |
+| `src/predictive.py` | Deterministic preparation, detection, finding and evaluation pipeline |
+| `reports/` | Current pipeline outputs and audit note |
+| `src/api.py`, `src/storage.py`, `src/workflow.py` | API, SQLite persistence, bounded workflow |
+| `app/streamlit_app.py` | User interface |
+| `tests/` | Dataset, prediction, API, workflow, and UI tests |
+| `docs/` | Assumptions, data dictionary, delivery and demo notes |
+
+## 4. Delivery Plan
+
+| Phase | Deliverable | Current state |
+|---|---|---|
+| 1 — Synthetic data | Seeded 30-day input set, tags, context, quality events, scenarios and documentation | Implemented; tests pass |
+| 2 — Predictive analytics | Contextual baseline, residual detection, diagnostics, findings and fixed-alarm evaluation | Implemented; regression values recorded in acceptance report |
+| 3 — Application and workflow | API, UI, SQLite, role checks, bounded workflow and optional wording adapter | Implemented; integration tests pass |
+| 4 — Validation and delivery | Full tests, evidence-based acceptance report, demo script, limitations and verification notes | Tests and Docker/HTTP startup checks pass; hosted CI and visual browser preview remain unverified |
+
+The phases have been delivered in order. This validation pass did not regenerate existing reports or alter analytics configuration. Before any operational pilot, the next decision is whether to collect and govern a representative real-vessel dataset with engineering owners.
+
+## 5. Workstream Ownership / RACI
+
+No named project assignments were supplied. The following is a **proposed role-based RACI**, not a record of actual staffing. R = Responsible, A = Accountable, C = Consulted, I = Informed.
+
+| Workstream / decision | POC sponsor | Data & analytics developer | Application developer | Chief Engineer / domain SME | Fleet office reviewer |
+|---|---:|---:|---:|---:|---:|
+| Scope and acceptance criteria | A | C | C | C | I |
+| Synthetic data and assumptions | I | R | I | C | I |
+| Detection and evaluation | I | R/A | C | C | I |
+| API, UI, workflow, audit | I | C | R/A | C | I |
+| Engineering validation of thresholds | I | C | I | R/A | I |
+| Individual maintenance approval/rejection | I | I | I | R/A | I |
+| Read-only findings review | I | I | I | C | R |
+
+Project-wide acceptance is ultimately a sponsor decision; the table uses that role for scope accountability only. POC code does not simulate assigned staff beyond its demo user roles.
+
+## 6. RAID Register
+
+| Type | Item | Response / owner |
+|---|---|---|
+| Risk | Synthetic relationships and alarm limits may not represent engine behavior. | Do not use operationally; have marine-engineering SMEs validate assumptions and thresholds. Owner: Chief Engineer / future pilot sponsor. |
+| Risk | Simplified OLS and tolerance/persistence rules may miss operating modes or create false alerts on real data. | Validate against labeled, representative telemetry and operating context before deployment. Owner: analytics and domain SME. |
+| Assumption | All source inputs are synthetic because no actual dataset was supplied. | Preserve provenance and do not mix future real data silently. Owner: data steward. |
+| Assumption | Demo users and mock maintenance/stock references are sufficient to demonstrate workflow. | Replace with approved identity and reference sources only in a separately scoped production project. Owner: application/security owner. |
+| Issue | The in-app browser preview did not render the local Streamlit page during this validation. | Docker frontend is running and returns HTTP 200; Streamlit AppTest also renders the pages. Visual browser inspection remains unverified. |
+| Dependency | GitHub Actions workflow exists, but no hosted run result was supplied or triggered. | Treat CI status as Not Verified until a run completes in GitHub. |
+| Dependency | Real-data pilot depends on data access, privacy/security review, signal metadata, alarm ownership, and engineering labels. | Resolve before production design or performance claims. |
+
+## 7. Test and Acceptance Strategy
+
+The automated acceptance suite is `python3.11 -m unittest discover -s tests -v`. It covers generation schema/row counts/reproducibility and label separation; quality, context, persistence and alarm timing; role permissions and audit persistence; workflow routes and maintenance mapping; LLM-disabled, missing-key and provider-failure fallback; and Streamlit AppTest rendering of key screens and charts.
+
+The report outputs are treated as the predictive regression baseline. Validation records SHA-1 checksums before/after the test run for `findings.json`, `evaluation.json`, `processing_summary.json`, `diagnostics.json`, and `residuals.csv.gz`; the four detection timestamps and alarm leads are also compared explicitly. Docker config parsing, actual service startup, API `/health`, `/docs`, browser-served Streamlit, and a hosted Actions run are tracked separately so configuration or in-process tests are not misreported as deployment verification.
+
+## 8. POC-to-Production Roadmap
+
+The following are **proposed enhancements**, not implemented commitments:
+
+1. Obtain representative vessel telemetry, tag/alarm definitions, maintenance records, and quality metadata under agreed governance.
+2. Have marine-engineering SMEs validate the healthy period, modes, thresholds, sensor limits, fault scenarios, and maintenance actions.
+3. Run a time-separated offline evaluation with labeled incidents, missingness, sensor faults, operating transitions, false-alert rate, and lead-time uncertainty.
+4. Define production identity, role provisioning, credential management, secure deployment, observability, backup/restore, retention, and audit controls.
+5. Design and approve narrowly scoped vessel/PMS integrations with data ownership, failure modes, read-only pilot boundaries, and safety review.
+6. Pilot in advisory/read-only mode with engineers; compare alerts to inspection outcomes and tune only through controlled change review.
+7. Consider broader deployment only after acceptance thresholds, operational ownership, cybersecurity, and support responsibilities are approved.
+
+No phase above changes the current advisory-only behavior or implies validated production readiness.

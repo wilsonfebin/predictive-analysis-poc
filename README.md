@@ -8,6 +8,21 @@ An advisory-only condition monitoring proof of concept for one synthetic marine 
 - Phase 2: deterministic per-signal expected-value models, residuals, persistence detection, diagnostics, findings, and evaluation in `src/predictive.py`. Reports under `reports/` are its integration boundary.
 - Phase 3: FastAPI reads reports and sensor history, SQLite stores review state and append-only events, Streamlit and Plotly provide the engineering UI, and one LangGraph routes existing findings to instrument or maintenance reference paths. Optional OpenAI use is limited to rewriting evidence into plain language; a deterministic template is the default and fallback.
 
+Technology stack: Python 3.11; the generator and predictive pipeline use the standard library, including direct ordinary least-squares calculations; FastAPI, Streamlit, Plotly, SQLite, and one bounded LangGraph workflow provide the application. OpenAI is an optional wording provider; no paid service is required for the default run.
+
+## Repository structure
+
+```text
+app/                 Streamlit application
+config/              Baseline, quality, tolerance and persistence settings
+data/                Synthetic telemetry, tags, context, ground truth and references
+docs/                Data notes, delivery brief and demo walkthrough
+reports/             Predictive outputs and validation reports
+scripts/              Synthetic dataset generator
+src/                 Predictive pipeline, API, persistence and workflow
+tests/               Dataset, analytics, API, workflow and UI tests
+```
+
 ## Requirements and setup
 
 Use Python 3.11. Create a virtual environment and install the pinned app dependencies:
@@ -21,8 +36,8 @@ python -m pip install -r requirements.txt
 Generate/rebuild the synthetic inputs and Phase 2 reports when needed:
 
 ```sh
-python scripts/generate_dataset.py
-python src/predictive.py
+python3.11 scripts/generate_dataset.py
+python3.11 src/predictive.py
 ```
 
 ## Local startup
@@ -83,13 +98,15 @@ The Streamlit UI provides Generator Overview, Sensor Monitoring (actual/expected
 
 ## Tests and CI
 
-Run Phase 1, Phase 2, and Phase 3 tests:
+Run the complete automated suite (dataset, predictive, API/RBAC/audit, workflow/LLM fallback, and UI rendering):
 
 ```sh
-python -m unittest discover -s tests -v
+python3.11 -m unittest discover -s tests -v
 ```
 
-GitHub Actions runs this suite and builds the Docker image on pushes and pull requests. CI does not require OpenAI credentials. Run Phase 2 processing with `python src/predictive.py`; generated output contracts and configuration are described in `docs/POC_DELIVERY_BRIEF.md`.
+GitHub Actions is configured to run this suite and build the Docker image on pushes and pull requests; the presence of this workflow does not by itself establish that a hosted CI run passed. CI does not require OpenAI credentials. Run Phase 2 processing with `python3.11 src/predictive.py`; generated output contracts and configuration are described in `docs/POC_DELIVERY_BRIEF.md`.
+
+For the acceptance evidence, outstanding verification items, and synthetic regression values, see [`reports/PHASE_4_ACCEPTANCE_REPORT.md`](reports/PHASE_4_ACCEPTANCE_REPORT.md). The timed walkthrough is in [`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md). The delivery brief distinguishes implemented POC capabilities from proposed production work.
 
 ## Limitations
 
