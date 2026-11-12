@@ -16,6 +16,55 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class StreamlitUiTests(unittest.TestCase):
+    def test_maintenance_decision_requires_a_nonblank_rationale(self):
+        with tempfile.TemporaryDirectory() as temp:
+            previous = os.environ.get("APP_DB_PATH")
+            os.environ["APP_DB_PATH"] = str(Path(temp) / "decision.sqlite3")
+            try:
+                with TestClient(app) as api_client:
+                    request_log = []
+
+                    def local_request(method, url, auth=None, **kwargs):
+                        path = url.split("localhost:8000", 1)[-1]
+                        kwargs.pop("timeout", None)
+                        request_log.append((method, path, kwargs.get("json")))
+                        return api_client.request(method, path, auth=auth, **kwargs)
+
+                    with patch("requests.request", side_effect=local_request):
+                        test_app = AppTest.from_file(str(ROOT / "app" / "streamlit_app.py"))
+                        test_app.session_state["auth"] = ("chief", "chief-demo")
+                        test_app.session_state["username"] = "chief"
+                        test_app.session_state["role"] = "Chief Engineer"
+                        test_app.run(timeout=30)
+                        nav = next(radio for radio in test_app.radio if radio.key == "workspace_nav")
+                        option = next(value for value in nav.options if "Maintenance Review" in value)
+                        nav.set_value(option).run(timeout=30)
+
+                        approve = next(button for button in test_app.button if button.label == "Approve finding")
+                        approve.click().run(timeout=30)
+                        self.assertTrue(any("Enter a decision rationale" in item.value for item in test_app.warning))
+                        self.assertFalse(any(method == "POST" and path.endswith("/approve") for method, path, _ in request_log))
+
+                        rationale = next(item for item in test_app.text_area if item.label == "Decision rationale")
+                        rationale.set_value("   ").run(timeout=30)
+                        approve = next(button for button in test_app.button if button.label == "Approve finding")
+                        approve.click().run(timeout=30)
+                        self.assertFalse(any(method == "POST" and path.endswith("/approve") for method, path, _ in request_log))
+
+                        rationale = next(item for item in test_app.text_area if item.label == "Decision rationale")
+                        rationale.set_value("Reviewed supporting evidence").run(timeout=30)
+                        approve = next(button for button in test_app.button if button.label == "Approve finding")
+                        approve.click().run(timeout=30)
+                        posts = [(path, body) for method, path, body in request_log if method == "POST" and path.endswith("/approve")]
+                        self.assertEqual(len(posts), 1)
+                        self.assertEqual(posts[0][1], {"rationale":"Reviewed supporting evidence"})
+                        self.assertFalse(test_app.exception)
+            finally:
+                if previous is None:
+                    os.environ.pop("APP_DB_PATH", None)
+                else:
+                    os.environ["APP_DB_PATH"] = previous
+
     def test_primary_pages_render_and_plotly_charts_are_present(self):
         with tempfile.TemporaryDirectory() as temp:
             previous = os.environ.get("APP_DB_PATH")

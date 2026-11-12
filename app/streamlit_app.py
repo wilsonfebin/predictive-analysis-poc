@@ -597,17 +597,26 @@ def maintenance_page(auth):
                         st.error(str(exc))
             if f["review_status"] not in ("APPROVED", "REJECTED") and st.session_state.role == "Chief Engineer":
                 with st.form("decision"):
-                    rationale = st.text_area("Decision rationale", key="decision_rationale")
+                    rationale = st.text_area(
+                        "Decision rationale",
+                        key="decision_rationale",
+                        placeholder="Explain why you are approving or rejecting this finding.",
+                        help="Required for the audit trail (at least 3 non-space characters).",
+                    )
                     approve_click = st.form_submit_button("Approve finding", type="primary")
                     reject_click = st.form_submit_button("Reject finding")
                 if approve_click or reject_click:
-                    try:
-                        decision = "approve" if approve_click else "reject"
-                        result = api("POST", "/api/v1/findings/{}/{}".format(selected_id, decision), auth, json={"rationale":rationale})
-                        st.success("{} recorded at {}.".format(result["decision"], display_timestamp(result["timestamp"])))
-                        st.rerun()
-                    except Exception as exc:
-                        st.error(str(exc))
+                    cleaned_rationale = rationale.strip()
+                    if len(cleaned_rationale) < 3:
+                        st.warning("Enter a decision rationale with at least 3 non-space characters before recording your decision.")
+                    else:
+                        try:
+                            decision = "approve" if approve_click else "reject"
+                            result = api("POST", "/api/v1/findings/{}/{}".format(selected_id, decision), auth, json={"rationale":cleaned_rationale})
+                            st.success("{} recorded at {}.".format(result["decision"], display_timestamp(result["timestamp"])))
+                            st.rerun()
+                        except Exception as exc:
+                            st.error(str(exc))
             elif f["review_status"] in ("APPROVED", "REJECTED"):
                 st.info("Final decision recorded: {}. Evidence and audit history remain available.".format(f["review_status"]))
             elif st.session_state.role == "Fleet Office":

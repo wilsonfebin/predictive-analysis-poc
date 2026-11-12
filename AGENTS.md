@@ -11,8 +11,7 @@ distinguishes likely sensor faults from machinery findings, and presents
 evidence-backed maintenance recommendations for human review.
 
 This is a **predictive maintenance application with a bounded Agentic AI
-workflow**. It is not an autonomous maintenance system, a trading
-system, or a general-purpose multi-agent platform.
+workflow**. It is not an autonomous maintenance system or a general-purpose multi-agent platform.
 
 The implementation must demonstrate:
 
@@ -72,10 +71,7 @@ the required schema. Clearly label all generated data and evaluation
 results as synthetic. Do not imply that synthetic results establish
 real-world predictive performance.
 
-If actual source datasets are later supplied, support them through the
-same input schema. Do not silently mix actual and synthetic data.
-
-## 3. Working principles for Codex
+## 3. Working principles
 
 Follow these instructions throughout implementation:
 
@@ -86,8 +82,7 @@ Follow these instructions throughout implementation:
     modules. Do not create microservices.
 -   Prefer straightforward, readable code over abstractions that do not
     solve a current requirement.
--   Do not add Kafka, Redis, Kubernetes, cloud infrastructure, vector
-    databases, a message broker or distributed services.
+-   Do not add Kafka, Redis, Kubernetes, cloud infrastructure, a message broker or distributed services.
 -   Use SQLite for the POC. Do not introduce PostgreSQL unless
     explicitly requested.
 -   Do not introduce multiple autonomous agents. Use one bounded
