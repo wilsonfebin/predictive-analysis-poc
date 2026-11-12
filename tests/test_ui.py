@@ -121,7 +121,7 @@ class StreamlitUiTests(unittest.TestCase):
                         self.assertIn("Latest Recorded Load", [metric.proto.label for metric in test_app.metric])
                         self.assertIn("Review State", [metric.proto.label for metric in test_app.metric])
                         self.assertTrue(any("Synthetic POC" in element.proto.body for element in test_app.markdown if hasattr(element.proto, "body")))
-                        self.assertTrue(any("Configured mode" in element.proto.body and "Disabled" in element.proto.body for element in test_app.markdown if hasattr(element.proto, "body")))
+                        self.assertTrue(any("Startup default" in element.proto.body and "Disabled" in element.proto.body for element in test_app.markdown if hasattr(element.proto, "body")))
                         for page in ("Sensor Monitoring", "Findings", "Maintenance Review", "Audit History"):
                             nav = next(radio for radio in test_app.radio if radio.key == "workspace_nav")
                             option = next(value for value in nav.options if page in value)
@@ -213,7 +213,7 @@ class StreamlitUiTests(unittest.TestCase):
                         os.environ["LLM_MODE"] = "openai"
                         test_app.run(timeout=30)
                         self.assertFalse(test_app.exception)
-                        self.assertTrue(any("Configured mode" in element.proto.body and "OpenAI" in element.proto.body for element in test_app.markdown if hasattr(element.proto, "body")))
+                        self.assertTrue(any("Startup default" in element.proto.body and "OpenAI" in element.proto.body for element in test_app.markdown if hasattr(element.proto, "body")))
             finally:
                 if previous is None:
                     os.environ.pop("APP_DB_PATH", None)
