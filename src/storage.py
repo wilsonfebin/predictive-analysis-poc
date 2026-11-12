@@ -99,6 +99,12 @@ def latest_workflow(finding_id, path=None):
     return {"result": json.loads(row["result_json"]), "created_at": row["created_at"], "actor": row["actor"]} if row else None
 
 
+def workflow_history(finding_id, path=None):
+    with connect(path) as conn:
+        rows = conn.execute("SELECT result_json,created_at,actor FROM workflow_runs WHERE finding_id=? ORDER BY id DESC", (finding_id,)).fetchall()
+    return [{"result": json.loads(row["result_json"]), "created_at": row["created_at"], "actor": row["actor"]} for row in rows]
+
+
 def decide(finding_id, decision, actor, role, rationale, path=None):
     if decision not in FINAL_STATES:
         raise ValueError("Decision must be APPROVED or REJECTED")

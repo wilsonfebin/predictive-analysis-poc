@@ -109,6 +109,10 @@ def add_theme():
     div[role="radiogroup"] label:has(input:checked) { background:#1D3555; }
     button[kind="secondary"] { color:var(--ink); background:#182538; border-color:var(--border); }
     [data-testid="stDataFrame"] [role="grid"] { background:#151F2E; color:#E5EDF8; }
+    .llm-mode { display:flex; align-items:center; justify-content:space-between; gap:.5rem; padding:.5rem .65rem; margin:.35rem 0 .2rem; border:1px solid var(--border); border-radius:9px; background:#111C2B; color:#CBD5E1; font-size:.78rem; }
+    .llm-mode strong { color:#E5EDF8; font-size:.8rem; }
+    .llm-mode.openai { border-color:#315C84; }
+    .llm-mode.disabled { border-color:var(--border); }
     @media (max-width: 900px) {
       .block-container { padding-left:.8rem; padding-right:.8rem; }
       h1 { font-size:1.48rem !important; }
@@ -223,6 +227,7 @@ def finding_detail(f):
                 "Reason":e.get("reason", ""),
             } for e in escalations]), use_container_width=True, hide_index=True)
         st.write("**Affected sensors** · " + ", ".join(f.get("affected_sensors", [])))
+        st.markdown("**Finding summary · deterministic analytics**")
         st.write(f.get("explanation", ""))
         st.markdown("**Recommended next action**")
         st.info(f.get("recommended_next_action", ""), icon="🔎")
@@ -241,6 +246,65 @@ def finding_detail(f):
         if f.get("spare_parts"):
             st.markdown("**Mock spare availability**")
             st.dataframe(pd.DataFrame(f["spare_parts"]), use_container_width=True, hide_index=True)
+
+
+def latest_workflow(auth, finding_id):
+    try:
+        return api("GET", "/api/v1/findings/{}/workflow".format(finding_id), auth)
+    except RuntimeError as exc:
+        if str(exc).startswith("API 404:"):
+            return None
+        raise
+
+
+def workflow_payload(workflow):
+    payload = workflow or {}
+    while "explanation_mode" not in payload and isinstance(payload.get("result"), dict):
+        payload = payload["result"]
+    return payload
+
+
+def workflow_source_label(payload):
+    mode = payload.get("explanation_mode")
+    if mode == "openai":
+        return "OpenAI-generated · validated"
+    if payload.get("fallback_reason"):
+        return "Template fallback · OpenAI wording not used"
+    return "Template-generated · LLM disabled"
+
+
+def render_workflow_explanation(workflow):
+    payload = workflow_payload(workflow)
+    st.markdown("**Observations and LLM status**")
+    st.caption("Wording source · {}".format(workflow_source_label(payload)))
+    st.write(payload.get("explanation", "No workflow explanation is available."))
+    if payload.get("fallback_reason"):
+        st.caption("Fallback reason · {}".format(payload["fallback_reason"]))
+    elif payload.get("explanation_mode") == "openai":
+        st.caption("OpenAI wording passed evidence validation. Finding severity, evidence and recommendation remain deterministic.")
+    else:
+        st.caption("Deterministic template wording; no OpenAI wording was used.")
+
+
+def workflow_mode_control(key):
+    configured = globals().get("llm_mode", "disabled")
+    choice = st.radio("Wording mode for workflow runs", ("Template", "OpenAI"), horizontal=True,
+                      index=1 if configured == "openai" else 0, key="workflow_mode_" + key,
+                      help="OpenAI is attempted only when selected. Provider errors or invalid output fall back to the deterministic template.")
+    return "openai" if choice == "OpenAI" else "disabled"
+
+
+def render_workflow_history(auth, finding_id):
+    try:
+        history = api("GET", "/api/v1/findings/{}/workflow/history".format(finding_id), auth)
+    except Exception:
+        return
+    if len(history) > 1:
+        with st.expander("Previous wording runs", expanded=False):
+            for run in history[1:]:
+                payload = workflow_payload(run)
+                st.caption("{} · {} · {}".format(workflow_source_label(payload), display_timestamp(run.get("created_at")), run.get("actor", "")))
+                st.write(payload.get("explanation", "No explanation available."))
 
 
 def _trend_history(auth, start, end, sensor_id="jacket_water_outlet_c"):
@@ -536,19 +600,34 @@ def findings_page(auth):
         selected = next(f for f in items if f["finding_id"] == selected_id)
         hint_col.caption("{} · {} sensor(s) · started {}".format(selected["category"].replace("_"," ").title(), len(selected["affected_sensors"]), display_timestamp(selected.get("start_timestamp"))))
     f = api("GET", "/api/v1/findings/{}".format(selected_id), auth)
+    workflow = latest_workflow(auth, selected_id)
+    selected_mode = workflow_mode_control("findings")
     with st.container(border=True):
         finding_detail(f)
+        if workflow:
+            render_workflow_explanation(workflow)
+        else:
+            st.caption("Observations and LLM status · Workflow not prepared. The finding summary above is deterministic.")
         if f["review_status"] not in ("APPROVED", "REJECTED") and st.session_state.role in ("Chief Engineer", "Second Engineer"):
             with st.form("investigate_findings"):
                 note = st.text_area("Investigation note", placeholder="Record the evidence reviewed or checks to perform.")
-                submit = st.form_submit_button("Run bounded workflow and save investigation", type="primary")
+                submit = st.form_submit_button("Run workflow and save investigation", type="primary")
             if submit:
                 try:
-                    result = api("POST", "/api/v1/findings/{}/investigate".format(selected_id), auth, json={"note":note})
+                    result = api("POST", "/api/v1/findings/{}/investigate".format(selected_id), auth, json={"note":note,"mode":selected_mode})
                     st.success("Investigation saved; status is UNDER_INVESTIGATION.")
-                    st.json(result["workflow"])
+                    render_workflow_explanation(result["workflow"])
                 except Exception as exc:
                     st.error(str(exc))
+        if workflow and st.session_state.role in ("Chief Engineer", "Second Engineer"):
+            if st.button("Regenerate wording using {}".format("OpenAI" if selected_mode == "openai" else "Template"), key="regen_findings"):
+                try:
+                    result = api("POST", "/api/v1/findings/{}/workflow/regenerate".format(selected_id), auth, json={"mode":selected_mode})
+                    st.success("New wording run saved; prior runs remain in history.")
+                    render_workflow_explanation(result)
+                except Exception as exc:
+                    st.error(str(exc))
+        render_workflow_history(auth, selected_id)
         if f.get("investigations"):
             with st.expander("Investigation history", expanded=False):
                 st.dataframe(pd.DataFrame(f["investigations"]), use_container_width=True, hide_index=True)
@@ -562,9 +641,15 @@ def maintenance_page(auth):
     selection, _ = st.columns([1,1.1])
     selected_id = selection.selectbox("Finding", [f["finding_id"] for f in items], format_func=lambda x: finding_title(next(f for f in items if f["finding_id"] == x)), key="maintenance_finding")
     f = api("GET", "/api/v1/findings/{}".format(selected_id), auth)
+    workflow = latest_workflow(auth, selected_id)
+    selected_mode = workflow_mode_control("maintenance")
     content_col, action_col = st.columns([1.45,.85], gap="medium")
     with content_col:
         finding_detail(f)
+        if workflow:
+            render_workflow_explanation(workflow)
+        else:
+            st.caption("Observations and LLM status · Workflow not prepared. The finding summary above is deterministic.")
         if f.get("investigations"):
             with st.container(border=True):
                 st.subheader("Investigation Notes")
@@ -573,16 +658,9 @@ def maintenance_page(auth):
         with st.container(border=True):
             st.subheader("Review Actions")
             st.caption("Current status · {}".format(f["review_status"].replace("_"," ")))
-            workflow = None
-            try:
-                workflow = api("GET", "/api/v1/findings/{}/workflow".format(selected_id), auth)
-            except RuntimeError:
-                pass
             if workflow:
-                result = workflow["result"]
-                st.markdown("**Prepared explanation**")
-                st.write(result["explanation"])
-                st.caption("{} · Human decision required · No work order created".format(result["explanation_mode"].title()))
+                result = workflow_payload(workflow)
+                st.caption("Explanation source · {} · Human decision required · No work order created".format(workflow_source_label(result)))
                 st.json(result["maintenance_reference"])
             if f["review_status"] not in ("APPROVED", "REJECTED") and st.session_state.role in ("Chief Engineer", "Second Engineer"):
                 with st.form("investigate_maintenance"):
@@ -590,11 +668,20 @@ def maintenance_page(auth):
                     submit = st.form_submit_button("Save investigation and prepare recommendation")
                 if submit:
                     try:
-                        result = api("POST", "/api/v1/findings/{}/investigate".format(selected_id), auth, json={"note":note})
+                        result = api("POST", "/api/v1/findings/{}/investigate".format(selected_id), auth, json={"note":note,"mode":selected_mode})
                         st.success("Investigation and workflow summary saved.")
-                        st.json(result["workflow"])
+                        render_workflow_explanation(result["workflow"])
                     except Exception as exc:
                         st.error(str(exc))
+            if workflow and st.session_state.role in ("Chief Engineer", "Second Engineer"):
+                if st.button("Regenerate wording using {}".format("OpenAI" if selected_mode == "openai" else "Template"), key="regen_maintenance"):
+                    try:
+                        result = api("POST", "/api/v1/findings/{}/workflow/regenerate".format(selected_id), auth, json={"mode":selected_mode})
+                        st.success("New wording run saved; prior runs remain in history.")
+                        render_workflow_explanation(result)
+                    except Exception as exc:
+                        st.error(str(exc))
+            render_workflow_history(auth, selected_id)
             if f["review_status"] not in ("APPROVED", "REJECTED") and st.session_state.role == "Chief Engineer":
                 with st.form("decision"):
                     rationale = st.text_area(
@@ -646,9 +733,13 @@ auth = st.session_state.auth
 try:
     overview = api("GET", "/api/v1/overview", auth)
     profile = api("GET", "/api/v1/me", auth)
+    health = api("GET", "/health", auth)
     st.session_state.role = profile["role"]
 except Exception as exc:
     st.error("Cannot reach the API at {}: {}".format(API, exc)); st.stop()
+
+llm_mode = str(health.get("llm_mode", "disabled")).strip().lower()
+llm_mode_label = {"disabled":"Disabled", "openai":"OpenAI"}.get(llm_mode, "Unknown")
 
 with st.sidebar:
     st.markdown('<div class="brand"><div class="brand-mark">⚓</div><div><div class="brand-name">Marine AI</div><div class="brand-subtitle">Predictive Maintenance</div></div></div>', unsafe_allow_html=True)
@@ -661,6 +752,9 @@ with st.sidebar:
     st.divider()
     st.markdown('<div class="section-label">Context</div>', unsafe_allow_html=True)
     st.markdown('<div class="side-context">Vessel · VESSEL-01<br>Generator · DG-01</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-label">Default wording mode</div>', unsafe_allow_html=True)
+    st.markdown('<div class="llm-mode {}"><span>Startup default</span><strong>{}</strong></div>'.format(html.escape(llm_mode), html.escape(llm_mode_label)), unsafe_allow_html=True)
+    st.caption("Select Template or OpenAI in Findings or Maintenance Review to set the mode for each run.")
     st.markdown('<div class="side-user"><div class="side-user-name">{}</div><div class="side-user-role">{}</div></div>'.format(html.escape(st.session_state.username), html.escape(st.session_state.role)), unsafe_allow_html=True)
     if st.button("Sign out", key="sign_out"):
         st.session_state.clear(); st.rerun()

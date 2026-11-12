@@ -120,7 +120,7 @@ def validate_explanation(text, finding, evidence_summary, maintenance_reference)
         return False, "Explanation contains a number not present in finding evidence"
     source_text = " ".join([deterministic_explanation(finding, evidence_summary, maintenance_reference), finding.get("explanation", "")])
     supported_words = {word.lower() for word in re.findall(r"[A-Za-z_]+", source_text)}
-    connector_words = {"a", "an", "and", "as", "at", "by", "for", "from", "in", "is", "it", "of", "on", "or", "the", "to", "was", "were", "with", "than", "that", "this", "which", "while", "shows", "showing", "indicates", "indicated", "measured", "measurement", "value", "values", "compared", "comparison", "remains", "observed", "consistent", "suggests", "support", "supports", "supported", "during", "over", "above", "below", "higher", "lower", "positive", "negative", "persistent", "requires", "review", "inspection", "check", "should", "be", "investigated"}
+    connector_words = {"a", "an", "and", "as", "at", "by", "for", "from", "in", "is", "it", "of", "on", "or", "the", "to", "was", "were", "with", "than", "that", "this", "which", "while", "shows", "showing", "indicates", "indicated", "measured", "measurement", "value", "values", "compared", "comparison", "remains", "observed", "consistent", "suggests", "support", "supports", "supported", "during", "over", "above", "below", "higher", "lower", "positive", "negative", "persistent", "requires", "review", "inspection", "check", "should", "be", "investigated", "system"}
     added_words = {word.lower() for word in re.findall(r"[A-Za-z_]+", text)} - supported_words - connector_words
     if added_words:
         return False, "Explanation contains unsupported descriptive terms: " + ", ".join(sorted(added_words))
@@ -146,8 +146,8 @@ def _generate_explanation(state, mode, client):
             model=os.environ.get("OPENAI_MODEL", "gpt-4o-mini"),
             temperature=0.1,
             messages=[
-                {"role": "system", "content": "Rewrite the supplied evidence as a concise engineering explanation. Use only supplied facts. Do not add numbers, recommendations, severity, diagnoses, or actions. Preserve all sensor names and the exact recommendation."},
-                {"role": "user", "content": json.dumps({"finding": finding, "evidence_summary": summary, "deterministic_recommendation": reference["action"]})},
+                {"role": "system", "content": "Rewrite the supplied evidence as a concise engineering explanation. Use only supplied facts. Do not include measurement values, dates, counts, or any other numbers; do not round or restate numbers. Copy affected sensor identifiers exactly, including any digits embedded in their names. Include the system and computed severity, and preserve the exact recommendation verbatim. Do not add a diagnosis, cause, urgency, risk, or action. Use neutral wording about the reported deviation only. A safe style is: '<system> shows a persistent deviation in <sensor>. Severity is <severity>. <exact recommendation>'."},
+                {"role": "user", "content": json.dumps({"finding": finding, "evidence_summary": summary, "required_system": finding.get("system"), "required_sensors": finding.get("affected_sensors", []), "computed_severity": finding.get("severity"), "deterministic_recommendation": reference["action"]})},
             ],
         )
         text = response.choices[0].message.content or ""

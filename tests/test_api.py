@@ -2,6 +2,7 @@ import json
 import os
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -108,6 +109,29 @@ class ApiTests(unittest.TestCase):
         after = self.request("GET", "/api/v1/audit").json()
         self.assertGreaterEqual(len(after), len(before))
         self.assertTrue(any(e["event"] == "APPROVED" for e in after))
+
+    def test_workflow_mode_can_change_for_new_and_existing_runs(self):
+        first = {"explanation_mode":"template", "explanation":"Template wording", "maintenance_reference":{}}
+        second = {"explanation_mode":"openai", "explanation":"OpenAI wording", "maintenance_reference":{}}
+        path = "/api/v1/findings/{}/investigate".format(MACHINERY_ID)
+        with patch("src.api.execute_workflow", side_effect=[first, second]) as execute:
+            created = self.request("POST", path, json={"note":"Reviewing evidence", "mode":"disabled"})
+            self.assertEqual(created.status_code, 200)
+            self.assertEqual(created.json()["workflow"]["explanation_mode"], "template")
+            regenerated = self.request("POST", "/api/v1/findings/{}/workflow/regenerate".format(MACHINERY_ID), json={"mode":"openai"})
+            self.assertEqual(regenerated.status_code, 200)
+            self.assertEqual(regenerated.json()["result"]["explanation_mode"], "openai")
+            self.assertEqual([call.kwargs["mode"] for call in execute.call_args_list], ["disabled", "openai"])
+        history = self.request("GET", "/api/v1/findings/{}/workflow/history".format(MACHINERY_ID)).json()
+        self.assertEqual(len(history), 2)
+        self.assertEqual(history[0]["result"]["explanation"], "OpenAI wording")
+        self.assertEqual(history[1]["result"]["explanation"], "Template wording")
+        invalid = self.request("POST", "/api/v1/findings/{}/workflow/regenerate".format(MACHINERY_ID), json={"mode":"other"})
+        self.assertEqual(invalid.status_code, 422)
+
+    def test_fleet_cannot_regenerate_workflow(self):
+        response = self.request("POST", "/api/v1/findings/{}/workflow/regenerate".format(MACHINERY_ID), user="fleet", password="fleet-demo", json={"mode":"disabled"})
+        self.assertEqual(response.status_code, 403)
 
 
 if __name__ == "__main__":

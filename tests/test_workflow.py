@@ -70,13 +70,21 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(no_key["recommendation"], failed["recommendation"])
         self.assertEqual(no_key["severity"], failed["severity"])
 
-    def test_valid_openai_rewrite_preserves_signal_action_and_supported_numbers(self):
+    def test_valid_openai_rewrite_uses_safe_paraphrase_without_numbers(self):
         template_result = execute_workflow(MACHINERY_ID, mode="disabled")
-        response = FakeClient(text=template_result["explanation"])
+        finding = next(f for f in FINDINGS if f["finding_id"] == MACHINERY_ID)
+        response = FakeClient(text="The {} system shows a persistent deviation in {}. Severity is {}. {}".format(
+            template_result["evidence_summary"]["system"],
+            finding["affected_sensors"][0],
+            template_result["severity"],
+            template_result["recommendation"],
+        ))
         result = execute_workflow(MACHINERY_ID, mode="openai", client=response)
         self.assertEqual(result["explanation_mode"], "openai")
+        self.assertNotEqual(result["explanation"], template_result["explanation"])
         self.assertEqual(result["recommendation"], template_result["recommendation"])
         self.assertEqual(result["severity"], template_result["severity"])
+        self.assertEqual(result["evidence_summary"], template_result["evidence_summary"])
         self.assertTrue(result["validation"]["valid"])
 
     def test_unsupported_numeric_claim_is_rejected(self):

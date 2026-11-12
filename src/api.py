@@ -10,7 +10,7 @@ from typing import Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Query, status
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from src import storage
 from src.workflow import execute_workflow
@@ -89,6 +89,26 @@ def _with_status(finding):
 
 class InvestigationBody(BaseModel):
     note: str = Field(min_length=3, max_length=2000)
+    mode: Optional[str] = None
+
+    @field_validator("mode")
+    @classmethod
+    def validate_mode(cls, value):
+        if value is not None and value.lower() not in ("disabled", "openai"):
+            raise ValueError("mode must be 'disabled' or 'openai'")
+        return value.lower() if value else value
+
+
+class WorkflowModeBody(BaseModel):
+    mode: str
+
+    @field_validator("mode")
+    @classmethod
+    def valid_mode(cls, value):
+        value = value.lower()
+        if value not in ("disabled", "openai"):
+            raise ValueError("mode must be 'disabled' or 'openai'")
+        return value
 
 
 class DecisionBody(BaseModel):
@@ -250,7 +270,7 @@ def investigate(finding_id: str, body: InvestigationBody, user=Depends(current_u
     finding = _finding(finding_id)
     try:
         timestamp = storage.add_investigation(finding_id, user["username"], user["role"], body.note)
-        workflow = execute_workflow(finding_id)
+        workflow = execute_workflow(finding_id, mode=body.mode)
         storage.save_workflow(finding_id, user["username"], workflow)
     except ValueError as exc:
         raise HTTPException(409, str(exc)) from exc
@@ -264,6 +284,24 @@ def get_workflow(finding_id: str, user=Depends(current_user)):
     if not result:
         raise HTTPException(404, "No workflow result exists for this finding")
     return result
+
+
+@app.get("/api/v1/findings/{finding_id}/workflow/history")
+def get_workflow_history(finding_id: str, user=Depends(current_user)):
+    _finding(finding_id)
+    return storage.workflow_history(finding_id)
+
+
+@app.post("/api/v1/findings/{finding_id}/workflow/regenerate")
+def regenerate_workflow(finding_id: str, body: WorkflowModeBody, user=Depends(current_user)):
+    _require(user, {"Chief Engineer", "Second Engineer"})
+    _finding(finding_id)
+    try:
+        result = execute_workflow(finding_id, mode=body.mode)
+        storage.save_workflow(finding_id, user["username"], result)
+    except ValueError as exc:
+        raise HTTPException(409, str(exc)) from exc
+    return storage.latest_workflow(finding_id)
 
 
 def _decision(finding_id, body, user, decision):

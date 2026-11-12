@@ -1,7 +1,7 @@
 # Phase 4 Acceptance Report
 
 **Project:** ThinkPalm Marine Diesel Generator Predictive Maintenance POC  
-**Validation date:** 10 November 2026 (Asia/Kolkata)  
+**Validation date:** 12 November 2026 (Asia/Kolkata)
 **Asset:** DG-01 / VESSEL-01  
 **Data provenance:** Synthetic; not evidence of vessel performance  
 **Recommendation:** **Ready for technical review and synthetic-data demonstration; not ready for operational deployment.**
@@ -24,15 +24,16 @@
 | Fleet Office is read-only | **Pass** | API integration test permits findings read and denies investigation and approval. Backend role dependencies enforce decisions for Chief Engineer only. |
 | Decision audit includes actor, role, timestamp and rationale | **Pass** | `src/storage.py` persists all four fields. A separate TestClient check using a temporary SQLite file approved a finding and verified the returned audit event’s actor, role, rationale and UTC timestamp; the integration suite also verifies audit persistence across app reopen. |
 | LangGraph and deterministic LLM-disabled path | **Pass** | `tests/test_workflow.py` executes the bounded workflow in disabled mode and validates route, explanation, recommendation, severity and human-review requirement. |
-| Missing OpenAI key/provider failure fallback | **Pass** | Workflow tests verify both cases return deterministic template wording and preserve severity and recommendation. No live API request was made. |
+| Missing OpenAI key/provider failure fallback | **Pass** | Fake-client workflow tests verify both cases return deterministic template wording and preserve severity and recommendation. A valid-key live request is recorded separately. |
 | LLM cannot replace finding decision fields | **Pass** | Tests cover supported rewrite preserving severity/recommendation and rejection of unsupported numeric/factual claims. Workflow returns finding evidence/severity/recommendation separately from wording. |
-| Full automated suite | **Pass** | `python3.11 -m unittest discover -s tests -v` — **23 tests passed**, 108.975 seconds. Warnings: LangGraph pending-deprecation notice and Streamlit AppTest bare-mode context notices; no failures. |
+| UI displays configured LLM mode and wording provenance | **Pass** | Sidebar reports `Disabled` or `OpenAI` as backend configuration. Findings and Maintenance Review separate deterministic analytics from an **Observations and LLM status** section, whose wording source is labeled OpenAI-generated/validated, template-generated, or template fallback. AppTest covers both configured modes and both wording sources. |
+| Full automated suite | **Pass** | `python3.11 -m unittest discover -s tests -v` — **23 tests passed**, 107.819 seconds. Warnings: LangGraph pending-deprecation notice and Streamlit AppTest bare-mode context notices; no failures. |
 | Docker Compose build and both services start | **Pass** | `docker compose up --build -d` completed successfully; `docker compose ps` showed backend and frontend Up. `docker compose config --quiet` passed. Read-only live API calls to overview, sensors and findings returned 200 and reported DG-01, 36 sensors, 4 machinery findings and 3 sensor findings. |
 | FastAPI health and OpenAPI documentation | **Pass** | Local HTTP checks: `/health` returned JSON status `ok`; `/docs` returned HTTP 200. |
 | Streamlit service response | **Pass** | Local HTTP request to `http://127.0.0.1:8501/` returned HTTP 200; UI AppTest rendered the screens. |
 | Visual browser smoke check | **Not Verified** | The in-app browser preview displayed `ERR_CONNECTION_REFUSED` for its local tab, even though host-side HTTP and AppTest checks passed. No screenshot/visual browser inspection is claimed. |
 | GitHub Actions CI run | **Not Verified** | `.github/workflows/ci.yml` is present and configures tests plus Docker image build, but no hosted run result was available. |
-| Live OpenAI provider request | **Not Verified / Not Required** | No external request was made; fake-client tests cover success rewrite, absent key and provider failure. |
+| Live OpenAI provider request | **Pass (follow-up)** | With the configured backend key, a live request using only synthetic MACH-002 evidence returned a validated OpenAI paraphrase. The key was not printed, and workflow state was not persisted. Fake-client tests also cover absent key and provider failure. |
 
 ## Predictive regression comparison
 

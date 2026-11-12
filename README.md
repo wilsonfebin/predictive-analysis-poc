@@ -88,13 +88,50 @@ With Docker and Compose installed:
 docker compose up --build
 ```
 
-The UI is at `http://localhost:8501`, the API at `http://localhost:8000/docs`, and the named `app-state` volume persists SQLite state. LLM-disabled mode works without secrets. To enable OpenAI, export `LLM_MODE=openai` and `OPENAI_API_KEY` before starting Compose. To stop the containers, run `docker compose down` (the named volume remains).
+The UI is at `http://localhost:8501`, the API at `http://localhost:8000/docs`, and the named `app-state` volume persists SQLite state. LLM-disabled mode works without secrets. `LLM_MODE` sets the initial UI selection, and the OpenAI API key remains backend-only. To stop the containers, run `docker compose down` (the named volume remains).
 
 ## API and screens
 
 Endpoints include `GET /health`, `GET /api/v1/me`, overview, sensor list/history, findings/detail, investigate/workflow, approve/reject, and audit under `/api/v1`. OpenAPI schema and interactive request examples are served at `/docs`.
 
-The Streamlit UI provides Generator Overview, Sensor Monitoring (actual/expected trends, deviation and finding markers, quality indicators), Findings, Maintenance Review, and Audit History. Historical sensor requests are time bounded and downsampled for plotting while retaining selected deviations and finding markers.
+The Streamlit UI provides Generator Overview, Sensor Monitoring (actual/expected trends, deviation and finding markers, quality indicators), Findings, Maintenance Review, and Audit History. In Findings and Maintenance Review, select Template or OpenAI for new workflow runs and regenerate wording for an existing run. Regeneration appends a version and preserves earlier wording in run history. The sidebar shows the startup default; each saved run labels its actual source as `OpenAI-generated`, `Template-generated`, or `Template fallback`. Provider errors and invalid generated wording automatically use the template. Finding evidence, severity and maintenance recommendations stay deterministic. Historical sensor requests are time bounded and downsampled for plotting while retaining selected deviations and finding markers.
+
+### UI screenshots
+
+The screenshots below show the synthetic POC interface. Values and findings shown are demonstration data; they are not evidence of validated real-vessel performance. Expand the gallery to view each screen.
+
+<details>
+<summary>View application screenshots</summary>
+
+#### Generator overview
+
+![Generator overview showing operating state, load, findings, severity distribution and review queue](docs/screenshots/generator-overview.png)
+
+#### Predictive trend and alarm comparison
+
+![Jacket-water trend with predictive detection, configured fixed alarm and quality exclusions](docs/screenshots/predictive-trend.png)
+
+#### Sensor monitoring
+
+![Sensor selection, data-quality distribution and actual-versus-expected monitoring charts](docs/screenshots/sensor-monitoring.png)
+
+#### Findings and severity
+
+![Findings register showing category, system, severity progression and status](docs/screenshots/findings-review.png)
+
+#### Maintenance review with OpenAI wording
+
+![Maintenance recommendation, evidence, workflow wording source and review controls](docs/screenshots/maintenance-review-openai.png)
+
+#### Maintenance investigation and decision
+
+![Open finding with investigation note, decision rationale and approve or reject controls](docs/screenshots/maintenance-review-decision.png)
+
+#### Audit history
+
+![Audit events showing actor, role, timestamp and rationale or note](docs/screenshots/audit-history.png)
+
+</details>
 
 ## Tests and CI
 
